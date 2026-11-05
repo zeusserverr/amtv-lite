@@ -797,6 +797,53 @@ class MainActivity : Activity() {
               }
               if (document.documentElement) add(); else document.addEventListener('DOMContentLoaded', add);
 
+              // Data: Apple's player kept ~5 minutes of audio downloaded ahead (the rest of the song and most of the
+              // next), thrown away on every skip. Its audio pieces (aod-ssl ranges, ~400 KB each) are fetched by the
+              // page; a piece now waits while more than AHEAD seconds are already buffered, and goes as soon as there
+              // are fewer. A new or skipped-to song starts empty, so its pieces go straight through; the next song
+              // still loads in time for gapless play. Held at most 5 minutes; cancelling it releases it at once.
+              var AHEAD = 90;
+              function buffered() {
+                var a = document.getElementById('apple-music-player');
+                if (!a || !a.buffered || !a.buffered.length) return 0;
+                var t = a.currentTime;
+                for (var i = 0; i < a.buffered.length; i++) {
+                  if (a.buffered.start(i) <= t + 0.5 && a.buffered.end(i) > t) return a.buffered.end(i) - t;
+                }
+                return 0;
+              }
+              function isAudioPiece(input, init) {
+                var url = typeof input === 'string' ? input : (input && input.url) || '';
+                if (url.indexOf('aod-ssl.itunes.apple.com/itunes-assets/') < 0) return false;
+                var h = (init && init.headers) || (input && input.headers);
+                var range = h ? (typeof h.get === 'function' ? h.get('Range') || h.get('range') : h.Range || h.range) : null;
+                return !!range && !/^bytes=0-/.test(range); // the small header piece always goes
+              }
+              var realFetch = window.fetch;
+              window.fetch = function (input, init) {
+                if (!isAudioPiece(input, init) || buffered() < AHEAD) return realFetch.apply(this, arguments);
+                var self = this, args = arguments, signal = (init && init.signal) || (input && input.signal);
+                var since = Date.now();
+                return new Promise(function (go, stop) {
+                  var timer = null;
+                  function aborted() {
+                    clearTimeout(timer);
+                    stop(signal.reason || new DOMException('The user aborted a request.', 'AbortError'));
+                  }
+                  if (signal) {
+                    if (signal.aborted) return aborted();
+                    signal.addEventListener('abort', aborted, { once: true }); // released at once, as fetch would be
+                  }
+                  (function check() {
+                    if (buffered() < AHEAD || Date.now() - since > 300000) {
+                      if (signal) signal.removeEventListener('abort', aborted);
+                      return go(realFetch.apply(self, args));
+                    }
+                    timer = setTimeout(check, 2000);
+                  })();
+                });
+              };
+
               // playing or not, from MusicKit's own events (checked once a second only until MusicKit exists)
               var hideLater = null;
               function music(m) {
