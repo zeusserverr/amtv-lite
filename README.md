@@ -6,6 +6,8 @@ The official Apple Music app isn't available for many Android TV devices, includ
 
 > **Unofficial.** Not made by, endorsed by, or affiliated with Apple. "Apple Music" is a trademark of Apple Inc. This app contains no Apple code: it opens music.apple.com, and you sign in with your own Apple ID and subscription.
 
+**[⬇️ Download the APK](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk)** · [How to install](#download-and-install) · [Demo video](docs/demo-switch-playlists.mp4)
+
 ![Home](docs/screenshots/01-home.jpg)
 
 ## What it can do
