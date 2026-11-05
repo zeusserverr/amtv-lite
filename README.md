@@ -5,15 +5,21 @@
 <p align="center">
   <a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/zeusserverr/android-apple-music-tv?label=release&color=fa2d55"></a>
   <a href="https://github.com/zeusserverr/android-apple-music-tv/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/zeusserverr/android-apple-music-tv/total?color=444"></a>
+  <img alt="Downloader code 4517764" src="https://img.shields.io/badge/Downloader%20code-4517764-fa2d55">
   <img alt="Android TV 8.0+" src="https://img.shields.io/badge/Android%20TV-8.0%2B-3ddc84">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
-<h3 align="center">
-  <a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk">⬇️ Download the APK</a>
-</h3>
-
-<p align="center">On your TV, in the <b>Downloader</b> app, just enter code <b><code>4517764</code></b></p>
+<table align="center">
+  <tr>
+    <th>📺 On your TV</th>
+    <th>💻 On a computer</th>
+  </tr>
+  <tr>
+    <td align="center">Open the <b>Downloader</b> app and enter<br><h2><code>4517764</code></h2></td>
+    <td align="center"><a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk"><b>⬇️ Download the APK</b></a><br><br>then <code>adb install AndroidAppleMusicTV.apk</code></td>
+  </tr>
+</table>
 
 <p align="center">
   <a href="#download-and-install">Install guide</a> ·
@@ -28,6 +34,15 @@
 The official Apple Music app isn't available for many Android TV devices, including the NVIDIA SHIELD ("Your device isn't compatible"). **Android Apple Music TV** is a full-screen, TV-friendly window onto Apple's own web player at [music.apple.com](https://music.apple.com): Apple's player does the music, and this app makes it work from the couch. It gives you a remote-controlled highlight, song-by-song lists, on-screen text entry, and playback that keeps going after you press Home.
 
 > **Unofficial.** Not made by, endorsed by, or affiliated with Apple. "Apple Music" is a trademark of Apple Inc. The app contains no Apple code: it opens music.apple.com, and you sign in with your own Apple ID and subscription.
+
+## Quick start
+
+1. On your Android TV, install **Downloader** (by AFTVnews) from the Play Store.
+2. Let Downloader install apps: **Settings → Apps → Special app access → Install unknown apps → Downloader**.
+3. Open Downloader, enter **`4517764`**, then choose **Install** when the download finishes.
+4. Open **Android Apple Music TV** and sign in with your Apple ID. That's it; you stay signed in.
+
+Need more detail? See the [full install guide](#download-and-install).
 
 ## What it can do
 
@@ -73,31 +88,27 @@ Measured on an NVIDIA SHIELD (2019):
 
 ## Download and install
 
-### ⬇️ [Download the app (APK)](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk)
+Every route below always installs the **newest version**: the Downloader code **`4517764`**, the short link [aftv.news/4517764](http://aftv.news/4517764), and the [direct APK link](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk). Older versions and change notes are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases).
 
-That link, the Downloader code **4517764** and the short link [aftv.news/4517764](http://aftv.news/4517764) always get the newest version. All versions and their change notes are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases).
+### Option 1: Downloader code (recommended)
+1. Install **Downloader** by AFTVnews from the Play Store on your TV.
+2. Allow it to install apps. Depending on your TV this is one of:
+   - **Settings → Apps → Special app access → Install unknown apps → Downloader → Allowed**
+   - **Settings → Device Preferences → Security & restrictions → Unknown sources → Downloader → On**
+3. Open Downloader, select the address box and enter **`4517764`**, then choose **Go**.
+4. When the download finishes, choose **Install**, then **Done**. (Downloader may offer to delete the APK file afterwards; that's safe.)
+5. Open **Android Apple Music TV**, choose **Sign In** on Apple's page, and sign in with the on-screen text box.
 
-### Easiest: install straight on the TV with Downloader
-1. On your Android TV, install **Downloader by AFTVnews** from the Play Store.
-2. Allow it to install apps: **Settings → Device Preferences → Security & restrictions → Unknown sources → Downloader → On**. Menus differ a little between TVs; on some it's under **Apps → Special app access → Install unknown apps**.
-3. Open Downloader, and in its address box enter the code:
-   ```
-   4517764
-   ```
-   (or the full address: `https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk`)
-4. Choose **Go**. When it finishes downloading, choose **Install**.
-5. Open **Android Apple Music TV** from your apps, choose **Sign In** on Apple's page, and sign in with your Apple ID using the on-screen text box. You only do this once.
-
-### From a computer (adb)
-1. On the TV, turn on **Developer options** (Settings → Device Preferences → About → press **Build** 7 times), then **USB debugging** / **Network debugging**.
-2. Download the APK on your computer, then run:
+### Option 2: from a computer with adb
+1. On the TV, turn on **Developer options** (Settings → Device Preferences → About → select **Build** 7 times), then **USB debugging** or **Network debugging**.
+2. [Download the APK](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk) and run:
    ```bash
    adb connect <your-TV's-IP-address>
    adb install AndroidAppleMusicTV.apk
    ```
 
 ### Updating
-Install a newer APK the same way; it updates in place and you stay signed in.
+Use the same code or link again: the new version installs over the old one, and you stay signed in.
 
 ## Using it
 
