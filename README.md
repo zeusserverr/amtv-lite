@@ -8,6 +8,7 @@
   <img alt="Downloader code 4517764" src="https://img.shields.io/badge/Downloader%20code-4517764-fa2d55">
   <img alt="Android TV 8.0+" src="https://img.shields.io/badge/Android%20TV-8.0%2B-3ddc84">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="https://github.com/zeusserverr/android-apple-music-tv/actions/workflows/build.yml"><img alt="Build" src="https://github.com/zeusserverr/android-apple-music-tv/actions/workflows/build.yml/badge.svg"></a>
 </p>
 
 <table align="center">
@@ -82,7 +83,7 @@ The technical details are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 3. Open Downloader, enter **`4517764`**, and choose **Install** when the download finishes.
 4. Open **Android Apple Music TV** and sign in with your Apple ID. You stay signed in.
 
-To update, do the same again; the new version installs over the old one. Prefer a computer? [Download the APK](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk) and run `adb install AndroidAppleMusicTV.apk`. All versions are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases).
+To update, do the same again; the new version installs over the old one. Prefer a computer? [Download the APK](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk) and run `adb install AndroidAppleMusicTV.apk`. All versions are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases), each with the APK's SHA-256 checksum so you can confirm your download is genuine.
 
 ## Remote controls
 
@@ -105,7 +106,7 @@ To update, do the same again; the new version installs over the old one. Prefer 
 
 ## Build from source
 
-JDK 17, Android SDK 34 and Gradle 8.7: `gradle assembleDebug`. Release signing and the release steps are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Changes are listed in the [changelog](CHANGELOG.md).
+With JDK 17 and the Android SDK (platform 34) installed, run `./gradlew assembleDebug` (`gradlew.bat assembleDebug` on Windows); the right Gradle version downloads itself. Every change is also built automatically on GitHub. Release signing and the release steps are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Changes are listed in the [changelog](CHANGELOG.md).
 
 ## License
 

@@ -46,6 +46,14 @@ Apple's service certificate (`play.itunes.apple.com/WebObjects/MZPlay.woa/wa/wid
 ## What can't be improved from the app
 About 30% of a core while playing is Chrome's protected-audio pipeline (the MediaCodec decoder loop polled by `DoRead`), which isn't reachable from the page or the app.
 
+## Renderer recovery
+If Android stops the page's renderer (to free memory, usually while the TV sleeps) or it crashes, `onRenderProcessGone` fires once per WebView on that renderer and returns `true`:
+- The dead view is removed and destroyed inside the callback, so nothing can use it afterwards. A `webGone` flag keeps queued work, media keys and `onSaveInstanceState` away from it.
+- The pop-up (if any) is simply dropped. For the main view, the text-entry dialog closes and `MusicSession` is told nothing is playing.
+- The new WebView is built at once if the app is on screen, otherwise in `onStart`. Rebuilding while the TV sleeps would start a new renderer under the same memory pressure and maybe without network.
+- It reopens the last music.apple.com address, tracked in `doUpdateVisitedHistory` because Apple's page rarely reloads. A main-frame load error is retried up to 5 times with growing delays.
+- Sign-in survives, because cookies and storage live in the app process, not the renderer.
+
 ## Measuring safely
 - Fine while someone is using the TV: CDP `Network` events (without initiator stacks), `PerformanceObserver` for `longtask` / `long-animation-frame` (it names the script and the forced style/layout time), and V8 CPU sampling.
 - **Avoid:** CDP `Tracing` with timeline categories, and Network capture with initiator stacks. Both stalled the app (one ANR) on a SHIELD.
@@ -53,12 +61,12 @@ About 30% of a core while playing is Chrome's protected-audio pipeline (the Medi
 - `tools/ab_playlist.py` and `tools/profile_page.py` are DevTools-protocol scripts used for these measurements (debug builds expose WebView debugging; release builds don't).
 
 ## Known issues
-- After the device sleeps, the page can come back blank (the web renderer was reclaimed) until the app is restarted. Fix idea: handle `onRenderProcessGone` and recreate the WebView.
 - The 90 s audio hold hasn't been watched over a long session; if Apple's loader times out held requests, raise `AHEAD` or remove the hold.
 
 ## Building and releasing
-- Debug: `gradle assembleDebug`. Release: `gradle assembleRelease`, signed with the key named in `~/.gradle/gradle.properties` (`AMTV_STORE_FILE`, `AMTV_STORE_PASSWORD`, `AMTV_KEY_ALIAS`, `AMTV_KEY_PASSWORD`). Without those, release builds are unsigned.
-- Publish: bump `versionCode`/`versionName`, rename the APK to exactly **`AndroidAppleMusicTV.apk`** (the README links `releases/latest/download/AndroidAppleMusicTV.apk`), then `gh release create vX.Y.Z AndroidAppleMusicTV.apk --latest`, and add an entry to `CHANGELOG.md`.
+- Debug: `./gradlew assembleDebug`. Release: `./gradlew assembleRelease`, signed with the key named in `~/.gradle/gradle.properties` (`AMTV_STORE_FILE`, `AMTV_STORE_PASSWORD`, `AMTV_KEY_ALIAS`, `AMTV_KEY_PASSWORD`). Without those, release builds are unsigned.
+- Publish: bump `versionCode`/`versionName`, rename the APK to exactly **`AndroidAppleMusicTV.apk`** (the README links `releases/latest/download/AndroidAppleMusicTV.apk`), then `gh release create vX.Y.Z AndroidAppleMusicTV.apk --latest` with the APK's SHA-256 (`sha256sum AndroidAppleMusicTV.apk`) in the notes, and add an entry to `CHANGELOG.md`.
+- CI: `.github/workflows/build.yml` builds a debug APK on every push and pull request (artifact kept 14 days). Release signing never runs on GitHub; the key stays offline.
 - The Downloader code **4517764** (aftv.news/4517764, registered at go.aftvnews.com) points to `releases/latest/download/AndroidAppleMusicTV.apk`, so it follows new releases as long as the asset keeps that name.
 - Updates must be signed with the same key, or Android refuses to install them over the previous version.
 

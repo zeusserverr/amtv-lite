@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.3 — 2026-11-04
+- **Fixed:** after the TV sleeps, the app could come back to a blank page until it was restarted. It now recovers by itself and reopens the page you were on (you stay signed in).
+- Building from source no longer needs Gradle installed (`./gradlew`), and every change is built automatically on GitHub.
+
 ## 0.9.2 — 2026-11-04
 First public release.
 

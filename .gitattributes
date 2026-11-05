@@ -1,0 +1,7 @@
+# keep shell scripts runnable on Linux/macOS and binaries untouched
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.jpg binary
+*.mp4 binary
+*.png binary

@@ -80,6 +80,7 @@ class MainActivity : Activity() {
     private val refreshTargets = Runnable { refresh() }
 
     private fun refresh(then: (() -> Unit)? = null) {
+        if (webGone) return
         if (fetching) {
             if (then != null) handler.postDelayed({ refresh(then) }, 100)
             return
@@ -107,7 +108,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         input = TvInput(this)
-        music = MusicSession(this) { action -> web.evaluateJavascript(MEDIA_JS.replace("%ACTION%", action), null) }
+        music = MusicSession(this) { action -> if (!webGone) web.evaluateJavascript(MEDIA_JS.replace("%ACTION%", action), null) }
         // debug builds only: lets Chrome DevTools (over adb) profile the page
         if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) WebView.setWebContentsDebuggingEnabled(true)
         root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
@@ -127,7 +128,18 @@ class MainActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        web.saveState(outState)
+        if (!webGone) web.saveState(outState)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        started = true
+        if (webGone) rebuildWeb() // the renderer went away while the app was in the background
+    }
+
+    override fun onStop() {
+        started = false
+        super.onStop()
     }
 
     override fun onResume() {
@@ -149,9 +161,11 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
         input.dismiss()
         closePopup()
-        web.destroy()
+        handler.removeCallbacksAndMessages(null) // closePopup queued a re-read
+        if (!webGone) web.destroy()
         music.release()
         super.onDestroy()
     }
@@ -239,7 +253,7 @@ class MainActivity : Activity() {
         }
 
         override fun onPageFinished(view: WebView, url: String) {
-            if (view === web && url.startsWith("https://music.apple.com/")) lastUrl = url
+            if (view === web && url.startsWith("https://music.apple.com/")) { lastUrl = url; loadRetries = 0 }
             CookieManager.getInstance().flush()
             pageChanged()
             invalidateTargets(300)
@@ -248,8 +262,35 @@ class MainActivity : Activity() {
         // Its WebViews can't draw again after that: the page stayed blank until the app was restarted, and an
         // unhandled renderer exit can also close the app. Instead, a fresh WebView reloads the same page.
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-            handler.post { rebuildWeb() }
+            // Called once per WebView on that renderer (main and pop-up). Each dead view is removed and destroyed
+            // right here, so nothing can use it after this returns.
+            if (view === popup) {
+                root.removeView(view)
+                view.destroy()
+                popup = null
+            } else if (view === web && !webGone) {
+                webGone = true
+                root.removeView(view)
+                view.destroy()
+                input.dismiss()
+                music.pageLost()
+                // Rebuilding while the TV sleeps would start a new renderer under the same memory pressure (and
+                // maybe with no network): it waits until the app is on screen again.
+                if (started) handler.post { rebuildWeb() }
+            }
             return true
+        }
+
+        // The music.apple.com address as Apple's page changes it (it rarely reloads), to reopen after a rebuild.
+        override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
+            if (view === web && url.startsWith("https://music.apple.com/")) lastUrl = url
+        }
+
+        // A page that failed to load (no network yet, e.g. right after the TV wakes) is tried again a few times.
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
+            if (view !== web || !request.isForMainFrame || loadRetries >= 5) return
+            loadRetries++
+            handler.postDelayed({ if (!webGone && started) web.reload() }, 5000L * loadRetries)
         }
 
         // (xp.apple.com analytics was blocked in v0.4; Apple's code then threw an "XHR error" every few
@@ -258,17 +299,18 @@ class MainActivity : Activity() {
 
     /** The last music.apple.com page shown, reopened if the page's renderer goes away. */
     private var lastUrl: String? = null
-    private var rebuilding = false
+    /** The main WebView's renderer is gone and the view was destroyed; a new one comes in [rebuildWeb]. */
+    private var webGone = false
+    private var started = false
+    private var loadRetries = 0
 
     /** Replaces the WebViews whose renderer is gone (main and pop-up share it) and reloads the last page. */
     private fun rebuildWeb() {
-        if (rebuilding || isDestroyed) return
-        rebuilding = true
+        if (!webGone || isDestroyed) return
+        webGone = false
         popup?.let { root.removeView(it); runCatching { it.destroy() } }
         popup = null
-        val old = web
-        root.removeView(old)
-        runCatching { old.destroy() }
+        input.dismiss()
         web = newWebView()
         root.addView(web, 0, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         music.attach(web)
@@ -285,8 +327,8 @@ class MainActivity : Activity() {
         cursor.focus = null
         leaveRows()
         pageChanged()
+        loadRetries = 0
         web.loadUrl(lastUrl ?: HOME)
-        rebuilding = false
     }
 
     private fun closePopup() {
@@ -328,6 +370,7 @@ class MainActivity : Activity() {
     private val rowUnstick = Runnable { rowBusy = false }
 
     private fun stepRow(code: Int) {
+        if (webGone) return
         if (rowBusy) { rowQueued = code; return }
         val f = cursor.focus ?: return
         rowBusy = true
@@ -429,7 +472,7 @@ class MainActivity : Activity() {
     private fun autoEnter(gen: Int, tries: Int) {
         if (tries > 14) return
         handler.postDelayed({
-            if (gen != autoGen) return@postDelayed
+            if (gen != autoGen || webGone) return@postDelayed
             // the address can take a second or more to change on a busy TV; until it does, keep checking (cheap)
             if (top.url == newPageFrom) { autoEnter(gen, tries + 1); return@postDelayed }
             // only look for the page's Play button: a full scan of the page while it loads slowed the loading
@@ -536,6 +579,7 @@ class MainActivity : Activity() {
 
     /** Is the item just reached a song row? Then Up/Down switch to song-by-song. */
     private fun checkSongRow(r: RectF) {
+        if (webGone) return
         val asked = ++rowCheck
         top.evaluateJavascript(withPoint(IS_ROW_JS, r.centerX(), r.centerY())) {
             if (asked == rowCheck) onSongRow = it == "true"
@@ -621,6 +665,7 @@ class MainActivity : Activity() {
 
     private fun back() {
         when {
+            webGone -> moveTaskToBack(true)
             popup != null -> closePopup()
             web.canGoBack() -> { cursor.focus = null; leaveRows(); pageChanged(); newPage = true; newPageFrom = top.url; web.goBack(); invalidateTargets(400) }
             else -> moveTaskToBack(true) // leave the app but keep the music playing
@@ -632,6 +677,7 @@ class MainActivity : Activity() {
      * with page zoom off, taps no longer wait for a possible double-tap.)
      */
     private fun click() {
+        if (webGone) return
         val f = cursor.focus
         if (onSongRow && f != null) {
             // the ring covers the whole row (not one link in it): play, wherever its centre falls
@@ -646,6 +692,7 @@ class MainActivity : Activity() {
 
     /** A touch tap at the pointer. */
     private fun tap() {
+        if (webGone) return
         val before = top.url // the page changes its address during the tap itself
         val x = cursor.px
         val y = cursor.py
@@ -689,6 +736,7 @@ class MainActivity : Activity() {
     }
 
     private fun sendMouse(action: Int, x: Float, y: Float, vscroll: Float) {
+        if (webGone) return
         val t = SystemClock.uptimeMillis()
         val props = arrayOf(MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_MOUSE })
         val coords = arrayOf(MotionEvent.PointerCoords().apply {
@@ -702,6 +750,7 @@ class MainActivity : Activity() {
     }
 
     private fun media(keyCode: Int) {
+        if (webGone) return
         val action = when (keyCode) {
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> "toggle"
             KeyEvent.KEYCODE_MEDIA_PLAY -> "play"
