@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -238,12 +239,54 @@ class MainActivity : Activity() {
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            if (view === web && url.startsWith("https://music.apple.com/")) lastUrl = url
             CookieManager.getInstance().flush()
             pageChanged()
             invalidateTargets(300)
         }
+        // Android can stop the page's renderer to free memory (typically while the TV sleeps), or it can crash.
+        // Its WebViews can't draw again after that: the page stayed blank until the app was restarted, and an
+        // unhandled renderer exit can also close the app. Instead, a fresh WebView reloads the same page.
+        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+            handler.post { rebuildWeb() }
+            return true
+        }
+
         // (xp.apple.com analytics was blocked in v0.4; Apple's code then threw an "XHR error" every few
         //  seconds and retried, so it is no longer blocked)
+    }
+
+    /** The last music.apple.com page shown, reopened if the page's renderer goes away. */
+    private var lastUrl: String? = null
+    private var rebuilding = false
+
+    /** Replaces the WebViews whose renderer is gone (main and pop-up share it) and reloads the last page. */
+    private fun rebuildWeb() {
+        if (rebuilding || isDestroyed) return
+        rebuilding = true
+        popup?.let { root.removeView(it); runCatching { it.destroy() } }
+        popup = null
+        val old = web
+        root.removeView(old)
+        runCatching { old.destroy() }
+        web = newWebView()
+        root.addView(web, 0, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        music.attach(web)
+        music.pageLost()
+        // answers from the old page will never come: clear anything waiting for one
+        fetching = false
+        rowBusy = false
+        rowQueued = 0
+        handler.removeCallbacks(rowUnstick)
+        targets = emptyList()
+        primaryTargets = emptyList()
+        playTargets = emptyList()
+        playerBar = null
+        cursor.focus = null
+        leaveRows()
+        pageChanged()
+        web.loadUrl(lastUrl ?: HOME)
+        rebuilding = false
     }
 
     private fun closePopup() {

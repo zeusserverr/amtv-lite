@@ -116,6 +116,9 @@ class MusicSession(private val context: Context, private val control: (action: S
         lastTitle = title
     }
 
+    /** The page went away (its renderer was stopped): nothing is playing any more. */
+    fun pageLost() = update(JSONObject().put("title", ""))
+
     fun release() {
         main.removeCallbacks(stopLater)
         if (foreground) PlaybackService.stopped(context)
