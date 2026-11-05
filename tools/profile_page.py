@@ -1,4 +1,4 @@
-"""Profile the Apple Music (Web) page on the SHIELD through Chrome DevTools over adb.
+"""Profile the AMTV Lite page (music.apple.com) on an Android TV device through Chrome DevTools over adb.
 
 usage: python -P tools/profile_page.py <seconds> <out.json>
 Prints a per-second timeline of main-thread work and, at the end, the hottest functions and the

@@ -20,7 +20,7 @@ body:
     id: version
     attributes:
       label: App version
-      placeholder: e.g. 0.9.2 (Settings → Apps → Android Apple Music TV)
+      placeholder: e.g. 0.9.2 (Settings → Apps → AMTV Lite)
   - type: input
     id: webview
     attributes:

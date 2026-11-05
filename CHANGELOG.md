@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.4 — 2026-11-05
+- Renamed to **AMTV Lite** (Apple Music TV Lite). Same app: it updates in place and you stay signed in.
+
 ## 0.9.3 — 2026-11-04
 - **Fixed:** after the TV sleeps, the app could come back to a blank page until it was restarted. It now recovers by itself and reopens the page you were on (you stay signed in).
 - Building from source no longer needs Gradle installed (`./gradlew`), and every change is built automatically on GitHub.

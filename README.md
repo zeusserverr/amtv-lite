@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="docs/header.jpg" alt="Android Apple Music TV" width="100%">
+  <img src="docs/amtv-lite-header.jpg" alt="AMTV Lite: Apple Music TV Lite" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/zeusserverr/android-apple-music-tv?label=release&color=fa2d55"></a>
-  <a href="https://github.com/zeusserverr/android-apple-music-tv/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/zeusserverr/android-apple-music-tv/total?color=444"></a>
+  <a href="https://github.com/zeusserverr/amtv-lite/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/zeusserverr/amtv-lite?label=release&color=fa2d55"></a>
+  <a href="https://github.com/zeusserverr/amtv-lite/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/zeusserverr/amtv-lite/total?color=444"></a>
   <img alt="Downloader code 4517764" src="https://img.shields.io/badge/Downloader%20code-4517764-fa2d55">
   <img alt="Android TV 8.0+" src="https://img.shields.io/badge/Android%20TV-8.0%2B-3ddc84">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
-  <a href="https://github.com/zeusserverr/android-apple-music-tv/actions/workflows/build.yml"><img alt="Build" src="https://github.com/zeusserverr/android-apple-music-tv/actions/workflows/build.yml/badge.svg"></a>
+  <a href="https://github.com/zeusserverr/amtv-lite/actions/workflows/build.yml"><img alt="Build" src="https://github.com/zeusserverr/amtv-lite/actions/workflows/build.yml/badge.svg"></a>
 </p>
 
 <table align="center">
@@ -18,7 +18,7 @@
   </tr>
   <tr>
     <td align="center">Open the <b>Downloader</b> app and enter<br><h3><code>4517764</code></h3></td>
-    <td align="center"><a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk"><b>⬇️ Download the APK</b></a><br><br>then <code>adb install AndroidAppleMusicTV.apk</code></td>
+    <td align="center"><a href="https://github.com/zeusserverr/amtv-lite/releases/latest/download/AMTV-Lite.apk"><b>⬇️ Download the APK</b></a><br><br>then <code>adb install AMTV-Lite.apk</code></td>
   </tr>
 </table>
 
@@ -26,7 +26,7 @@
 
 ## What it is
 
-**The real Apple Music, on Android TV.** This isn't a look-alike or a third-party player. It's Apple's own web player (music.apple.com) running inside a browser we built for the TV. You get your library, playlists, radio, lyrics and Apple's whole catalog, exactly as Apple serves them, and you control all of it with the TV remote.
+**AMTV Lite (Apple Music TV Lite) is the real Apple Music, on Android TV.** This isn't a look-alike or a third-party player. It's Apple's own web player (music.apple.com) running inside a browser we built for the TV. You get your library, playlists, radio, lyrics and Apple's whole catalog, exactly as Apple serves them, and you control all of it with the TV remote.
 
 > Unofficial and not affiliated with Apple. You sign in with your own Apple ID and Apple Music subscription.
 
@@ -39,7 +39,7 @@
 | Casting or AirPlay from a phone | Needs your phone every time, and the TV can't browse on its own |
 | A regular TV web browser | Built for a mouse, not a remote; fiddly typing; a heavy page; music often stops when you switch apps |
 | Unofficial Apple Music clients | Re-create Apple's service with private APIs that can break or put your account at risk |
-| **Android Apple Music TV** | **Apple's own player, in a browser built for TVs: works with the remote, keeps playing in the background, and stays light** |
+| **AMTV Lite** | **Apple's own player, in a browser built for TVs: works with the remote, keeps playing in the background, and stays light** |
 
 ## Built as a custom TV browser
 
@@ -81,9 +81,9 @@ The technical details are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 1. On your TV, install **Downloader** (by AFTVnews) from the Play Store.
 2. Let it install apps: **Settings → Apps → Special app access → Install unknown apps → Downloader**. On some TVs this is under **Device Preferences → Security & restrictions → Unknown sources**.
 3. Open Downloader, enter **`4517764`**, and choose **Install** when the download finishes.
-4. Open **Android Apple Music TV** and sign in with your Apple ID. You stay signed in.
+4. Open **AMTV Lite** and sign in with your Apple ID. You stay signed in.
 
-To update, do the same again; the new version installs over the old one. Prefer a computer? [Download the APK](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk) and run `adb install AndroidAppleMusicTV.apk`. All versions are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases), each with the APK's SHA-256 checksum so you can confirm your download is genuine.
+To update, do the same again; the new version installs over the old one. Prefer a computer? [Download the APK](https://github.com/zeusserverr/amtv-lite/releases/latest/download/AMTV-Lite.apk) and run `adb install AMTV-Lite.apk`. All versions are on the [Releases page](https://github.com/zeusserverr/amtv-lite/releases), each with the APK's SHA-256 checksum so you can confirm your download is genuine.
 
 ## Remote controls
 
@@ -102,7 +102,7 @@ To update, do the same again; the new version installs over the old one. Prefer 
 
 **Will it work on my TV?** Most Android TV and Google TV devices, as long as their WebView supports Widevine (Apple's copy protection). It's tested on an NVIDIA SHIELD; Amazon Fire TV is untested.
 
-**Found a problem?** [Open an issue](https://github.com/zeusserverr/android-apple-music-tv/issues/new/choose) with your TV model and what happened.
+**Found a problem?** [Open an issue](https://github.com/zeusserverr/amtv-lite/issues/new/choose) with your TV model and what happened.
 
 ## Build from source
 

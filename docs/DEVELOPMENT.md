@@ -1,6 +1,6 @@
 # Development notes
 
-How Android Apple Music TV works inside, what was measured, and what to watch out for when changing it.
+How AMTV Lite (Apple Music TV Lite) works inside, what was measured, and what to watch out for when changing it.
 
 ## Overview
 A single-activity app. A full-screen `WebView` loads `https://music.apple.com/`, and a transparent overlay (`CursorView`) draws the remote's highlight on top. Everything that makes Apple's page TV-friendly is either Kotlin around the WebView or a small script injected at document start.
@@ -65,9 +65,9 @@ If Android stops the page's renderer (to free memory, usually while the TV sleep
 
 ## Building and releasing
 - Debug: `./gradlew assembleDebug`. Release: `./gradlew assembleRelease`, signed with the key named in `~/.gradle/gradle.properties` (`AMTV_STORE_FILE`, `AMTV_STORE_PASSWORD`, `AMTV_KEY_ALIAS`, `AMTV_KEY_PASSWORD`). Without those, release builds are unsigned.
-- Publish: bump `versionCode`/`versionName`, rename the APK to exactly **`AndroidAppleMusicTV.apk`** (the README links `releases/latest/download/AndroidAppleMusicTV.apk`), then `gh release create vX.Y.Z AndroidAppleMusicTV.apk --latest` with the APK's SHA-256 (`sha256sum AndroidAppleMusicTV.apk`) in the notes, and add an entry to `CHANGELOG.md`.
+- Publish: bump `versionCode`/`versionName`, upload the APK under **two** names: **`AMTV-Lite.apk`** (linked from the README) and **`AndroidAppleMusicTV.apk`** (the name the Downloader code was registered with, before the rename), then `gh release create vX.Y.Z AMTV-Lite.apk AndroidAppleMusicTV.apk --latest` with the APK's SHA-256 (`sha256sum AndroidAppleMusicTV.apk`) in the notes, and add an entry to `CHANGELOG.md`.
 - CI: `.github/workflows/build.yml` builds a debug APK on every push and pull request (artifact kept 14 days). Release signing never runs on GitHub; the key stays offline.
-- The Downloader code **4517764** (aftv.news/4517764, registered at go.aftvnews.com) points to `releases/latest/download/AndroidAppleMusicTV.apk`, so it follows new releases as long as the asset keeps that name.
+- The Downloader code **4517764** (aftv.news/4517764, registered at go.aftvnews.com) points to `zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk`: the old repository name (GitHub redirects it to `amtv-lite`) and the old file name. It follows new releases as long as every release also carries `AndroidAppleMusicTV.apk`.
 - Updates must be signed with the same key, or Android refuses to install them over the previous version.
 
 ## Ground rules

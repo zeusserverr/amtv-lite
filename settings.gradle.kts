@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AppleMusicTV"
+rootProject.name = "AMTVLite"
 include(":app")
