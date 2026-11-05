@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.jpg" alt="Android Apple Music TV" width="100%">
+  <img src="docs/header.jpg" alt="Android Apple Music TV" width="100%">
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
     <th>💻 On a computer</th>
   </tr>
   <tr>
-    <td align="center">Open the <b>Downloader</b> app and enter<br><h2><code>4517764</code></h2></td>
+    <td align="center">Open the <b>Downloader</b> app and enter<br><h3><code>4517764</code></h3></td>
     <td align="center"><a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk"><b>⬇️ Download the APK</b></a><br><br>then <code>adb install AndroidAppleMusicTV.apk</code></td>
   </tr>
 </table>
