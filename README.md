@@ -46,15 +46,32 @@ Measured on an NVIDIA SHIELD (2019):
 - An **Apple Music subscription** and Apple ID.
 - A TV remote (a game controller works too).
 
-## Install
-1. Download the latest `.apk` from this repository's **Releases** page.
-2. Get it onto your TV, either:
-   - with the **Downloader** app on the TV (enter the APK's download link), or
-   - from a computer: `adb install AndroidAppleMusicTV.apk`
-3. Allow installs from that app when Android asks ("Install unknown apps").
-4. Open **Android Apple Music TV**, choose **Sign In** on Apple's page and sign in with your Apple ID using the on-screen text box.
+## Download and install
 
-Your sign-in is kept, so this is a one-time step.
+### ⬇️ [Download the app (APK)](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk)
+
+That link always gets the newest version. All versions and their change notes are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases).
+
+### Easiest: install straight on the TV with Downloader
+1. On your Android TV, install **Downloader by AFTVnews** from the Play Store.
+2. Allow it to install apps: **Settings → Device Preferences → Security & restrictions → Unknown sources → Downloader → On**. Menus differ a little between TVs; on some it's under **Apps → Special app access → Install unknown apps**.
+3. Open Downloader and type this address into its URL box:
+   ```
+   https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk
+   ```
+4. Choose **Go**. When it finishes downloading, choose **Install**.
+5. Open **Android Apple Music TV** from your apps, choose **Sign In** on Apple's page, and sign in with your Apple ID using the on-screen text box. You only do this once.
+
+### From a computer (adb)
+1. On the TV, turn on **Developer options** (Settings → Device Preferences → About → press **Build** 7 times), then **USB debugging** / **Network debugging**.
+2. Download the APK on your computer, then run:
+   ```bash
+   adb connect <your-TV's-IP-address>
+   adb install AndroidAppleMusicTV.apk
+   ```
+
+### Updating
+Install a newer APK the same way; it updates in place and you stay signed in.
 
 ## Using it
 
