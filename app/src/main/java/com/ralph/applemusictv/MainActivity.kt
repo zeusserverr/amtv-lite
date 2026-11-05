@@ -429,14 +429,13 @@ class MainActivity : Activity() {
     private fun jumpWith(code: Int, retry: Boolean) {
         if (enterNewPage(code, retry)) return
         if (code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_LEFT) newPage = false
-        val best = (if (code == KeyEvent.KEYCODE_DPAD_RIGHT && inSidebar()) enterContent() else null) ?: pick(targets, code)
+        // Down on the page passes over the floating player bar: with nothing else below, the page scrolls (Home,
+        // New, long lists). Only once the page can't scroll further (the second, after-scroll try) is the bar a stop.
+        val barY = root.height * 0.86f
+        val skipBar = code == KeyEvent.KEYCODE_DPAD_DOWN && retry && cursor.py < barY
+        val candidates = if (skipBar) targets.filter { it.centerY() < barY } else targets
+        val best = (if (code == KeyEvent.KEYCODE_DPAD_RIGHT && inSidebar()) enterContent() else null) ?: pick(candidates, code)
         lastJumpMoved = best != null
-        if (best != null && retry && best.centerY() > root.height * 0.86f && cursor.py < root.height * 0.86f) {
-            // about to drop into the floating player bar: the songs above it may just not be read yet
-            handler.removeCallbacks(refreshTargets)
-            refresh { jumpWith(code, retry = false) }
-            return
-        }
         if (best != null) {
             snapTo(best)
             if (SystemClock.uptimeMillis() - targetsAt > 4000) invalidateTargets(300)
