@@ -29,7 +29,7 @@ The official Apple Music app isn't available for many Android TV devices, includ
 
 ## What it can do
 
-| | |
+| Feature | What it does |
 |---|---|
 | **Remote-first navigation** | The arrow keys jump between buttons, tiles and songs, with a highlight showing where you are. No mouse or touch needed. |
 | **Song-by-song lists** | In playlists and albums, Up and Down move exactly one song per press while the list scrolls under a steady highlight. |
@@ -50,12 +50,16 @@ Measured on an NVIDIA SHIELD (2019):
 
 ## Screenshots
 
-| | |
-|---|---|
-| ![Remote highlight](docs/screenshots/02-home-remote.jpg) | ![Lands on Play](docs/screenshots/03-playlist-autoplay-focus.jpg) |
-| Moving around Home with the remote | A playlist opens with **Play** already highlighted |
-| ![Song by song](docs/screenshots/04-song-by-song.jpg) | ![Playing](docs/screenshots/05-playing.jpg) |
-| Down moves one song at a time | Playing, with Apple's player bar |
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/02-home-remote.jpg" alt="Remote highlight on Home"><br><sub>Moving around Home with the remote</sub></td>
+    <td width="50%"><img src="docs/screenshots/03-playlist-autoplay-focus.jpg" alt="Playlist opens with Play highlighted"><br><sub>A playlist opens with <b>Play</b> already highlighted</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/04-song-by-song.jpg" alt="Song-by-song navigation"><br><sub>Down moves one song at a time</sub></td>
+    <td><img src="docs/screenshots/05-playing.jpg" alt="Playing"><br><sub>Playing, with Apple's player bar</sub></td>
+  </tr>
+</table>
 
 **Video (30 s):** [switching between two playlists with the remote](docs/demo-switch-playlists.mp4)
 
