@@ -23,7 +23,24 @@ import kotlin.concurrent.thread
  * song line can't see Apple Music. A small page script listens to MusicKit's events and posts the song here;
  * Android's play/pause/skip come back through [control].
  */
+/** What's playing, for the app's own Now Playing screen. [positionMs] was measured at [positionAt] (elapsedRealtime). */
+class NowState(
+    val title: String, val artist: String, val album: String, val art: Bitmap?,
+    val durationMs: Long, val positionMs: Long, val positionAt: Long, val playing: Boolean,
+) {
+    /** Where the song is now: the last reported position, moved on by the time since while playing. */
+    fun positionNow(): Long {
+        val p = positionMs + if (playing) SystemClock.elapsedRealtime() - positionAt else 0L
+        return if (durationMs > 0) p.coerceIn(0L, durationMs) else p.coerceAtLeast(0L)
+    }
+}
+
 class MusicSession(private val context: Context, private val control: (action: String) -> Unit) {
+    /** The current song (null when nothing is loaded), and a callback for every change, art included. */
+    var state: NowState? = null
+        private set
+    var onChange: ((NowState?) -> Unit)? = null
+
     private val main = Handler(Looper.getMainLooper())
     private val session = MediaSession(context, "AppleMusicWeb").apply {
         setCallback(object : MediaSession.Callback() {
@@ -55,6 +72,8 @@ class MusicSession(private val context: Context, private val control: (action: S
         if (title.isEmpty()) {
             session.isActive = false
             setPlaying(false, m)
+            state = null
+            onChange?.invoke(null)
             return
         }
         val url = m.optString("art").takeIf { it.startsWith("https://") }
@@ -91,6 +110,12 @@ class MusicSession(private val context: Context, private val control: (action: S
             .build())
         session.isActive = true
         setPlaying(playing, m)
+        val title = m.optString("title")
+        // on a song change MusicKit can still report the previous song's time; a new song starts near 0
+        val position = if (title != state?.title && m.optLong("position") > 5_000L) 0L else m.optLong("position")
+        state = NowState(title, m.optString("artist"), m.optString("album"), art,
+            m.optLong("duration"), position, SystemClock.elapsedRealtime(), playing)
+        onChange?.invoke(state)
     }
 
     private var foreground = false

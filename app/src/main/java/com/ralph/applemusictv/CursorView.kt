@@ -244,7 +244,7 @@ class CursorView(
     }
 
     private fun drawHint(c: Canvas, a: Float) {
-        val text = "Tap arrows: jump to items   ·   Hold arrows: glide   ·   OK: select   ·   Back: go back   ·   ▶❚❚: play/pause"
+        val text = context.getString(R.string.cursor_hint)
         hintText.textSize = 26f * u
         val w = hintText.measureText(text) + 60f * u
         val left = (width - w) / 2f

@@ -72,7 +72,7 @@ class TvInput(private val activity: Activity) {
                 cornerRadius = px(18).toFloat()
             }
         }
-        val title = field.optString("label").ifBlank { if (type == "password") "Password" else "Enter text" }
+        val title = field.optString("label").ifBlank { activity.getString(if (type == "password") R.string.input_password else R.string.input_text) }
         panel.addView(TextView(activity).apply {
             text = title
             textSize = 16f

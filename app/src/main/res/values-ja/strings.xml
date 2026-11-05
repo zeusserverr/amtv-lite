@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cursor_hint">矢印：項目へ移動   ·   長押し：スライド   ·   OK：選択   ·   戻るを長押し：メニュー   ·   ▶❚❚：再生/一時停止</string>
+    <string name="input_password">パスワード</string>
+    <string name="input_text">テキストを入力</string>
+    <string name="notification_channel">再生中</string>
+    <string name="np_nothing">再生中の曲はありません</string>
+    <string name="np_hint">OK：再生/一時停止   ·   ◀ ▶：前へ/次へ   ·   戻る：閉じる</string>
+    <string name="qm_title">クイックメニュー</string>
+    <string name="qm_now_playing">再生中</string>
+    <string name="qm_voice">音声検索</string>
+    <string name="qm_search">検索</string>
+    <string name="qm_home">ホーム</string>
+    <string name="qm_new">新着</string>
+    <string name="qm_radio">ラジオ</string>
+    <string name="qm_recent">最近追加した項目</string>
+    <string name="qm_playlists">プレイリスト</string>
+    <string name="qm_hint">戻る：閉じる</string>
+    <string name="voice_prompt">アーティスト、アルバム、曲名を話してください</string>
+    <string name="voice_unavailable">このテレビでは音声検索を利用できません</string>
+    <string name="search_unavailable">現在、検索は利用できません。音楽を一時停止してからもう一度お試しください。</string>
+</resources>

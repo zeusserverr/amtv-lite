@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 — 2026-11-05
+- **Now Playing:** a full-screen view with the cover, song, artist, album and progress on a background tinted from the cover. OK plays or pauses; ◀ ▶ skip.
+- **Screensaver:** after 2 minutes without a button press, Now Playing dims and drifts slowly, and keeps the TV's own screensaver away while music plays. The first press wakes it.
+- **Quick menu:** hold Back to jump to Now Playing, voice search, Search, Home, New, Radio, Recently Added or Playlists.
+- **Voice search:** say an artist, album or song.
+- **Languages:** the app's own text is now in Spanish, French, German, Portuguese, Italian, Japanese and Russian, as well as English.
+
 ## 0.9.4 — 2026-11-05
 - Renamed to **AMTV Lite** (Apple Music TV Lite). Same app: it updates in place and you stay signed in.
 

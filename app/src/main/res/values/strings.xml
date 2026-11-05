@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AMTV Lite</string>
+    <string name="app_name" translatable="false">AMTV Lite</string>
+    <string name="cursor_hint">Tap arrows: jump to items   ·   Hold arrows: glide   ·   OK: select   ·   Hold Back: menu   ·   ▶❚❚: play/pause</string>
+    <string name="input_password">Password</string>
+    <string name="input_text">Enter text</string>
+    <string name="notification_channel">Now playing</string>
+    <string name="np_nothing">Nothing is playing</string>
+    <string name="np_hint">OK: play/pause   ·   ◀ ▶: previous/next   ·   Back: close</string>
+    <string name="qm_title">Quick menu</string>
+    <string name="qm_now_playing">Now Playing</string>
+    <string name="qm_voice">Voice search</string>
+    <string name="qm_search">Search</string>
+    <string name="qm_home">Home</string>
+    <string name="qm_new">New</string>
+    <string name="qm_radio">Radio</string>
+    <string name="qm_recent">Recently Added</string>
+    <string name="qm_playlists">Playlists</string>
+    <string name="qm_hint">Back: close</string>
+    <string name="voice_prompt">Say an artist, album or song</string>
+    <string name="voice_unavailable">Voice search isn’t available on this TV</string>
+    <string name="search_unavailable">Search isn’t available right now. Try again when the music is paused.</string>
 </resources>

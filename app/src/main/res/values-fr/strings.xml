@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cursor_hint">Flèches : passer d’un élément à l’autre   ·   Maintenir : glisser   ·   OK : choisir   ·   Maintenir Retour : menu   ·   ▶❚❚ : lecture/pause</string>
+    <string name="input_password">Mot de passe</string>
+    <string name="input_text">Saisir le texte</string>
+    <string name="notification_channel">Lecture en cours</string>
+    <string name="np_nothing">Aucune lecture en cours</string>
+    <string name="np_hint">OK : lecture/pause   ·   ◀ ▶ : précédent/suivant   ·   Retour : fermer</string>
+    <string name="qm_title">Menu rapide</string>
+    <string name="qm_now_playing">Lecture en cours</string>
+    <string name="qm_voice">Recherche vocale</string>
+    <string name="qm_search">Rechercher</string>
+    <string name="qm_home">Accueil</string>
+    <string name="qm_new">Nouveautés</string>
+    <string name="qm_radio">Radio</string>
+    <string name="qm_recent">Ajouts récents</string>
+    <string name="qm_playlists">Playlists</string>
+    <string name="qm_hint">Retour : fermer</string>
+    <string name="voice_prompt">Dites un artiste, un album ou un titre</string>
+    <string name="voice_unavailable">La recherche vocale n’est pas disponible sur ce téléviseur</string>
+    <string name="search_unavailable">La recherche n’est pas disponible pour le moment. Réessayez avec la musique en pause.</string>
+</resources>

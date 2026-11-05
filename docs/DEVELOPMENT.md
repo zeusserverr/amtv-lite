@@ -13,6 +13,8 @@ A single-activity app. A full-screen `WebView` loads `https://music.apple.com/`,
 | `MusicSession.kt` | Bridges MusicKit's playback state to an Android `MediaSession` (media keys, launchers, screensavers) |
 | `PlaybackService.kt` | Foreground `mediaPlayback` service while music plays, so it keeps priority after Home |
 | `WidevineCert.kt` | Serves Apple's Widevine service certificate from disk (see below) |
+| `NowPlayingView.kt` | Native full-screen Now Playing and its screensaver mode |
+| `QuickMenuView.kt` | Native hold-Back menu |
 
 ## WebView setup
 - **Desktop identity:** a desktop Chrome user agent built from the WebView's own Chrome version, so Apple serves the full web player.
@@ -39,6 +41,15 @@ All in `LIGHTER_CSS_JS`, music.apple.com only:
 - **Rendering:** off-screen `.songs-list-row`, `main section` and shelves use `content-visibility: auto`. `backdrop-filter`, lyric blur, the animated now-playing canvas and the equalizer animation are off. Muted, looping cover videos never load. The page is told `prefers-reduced-motion`.
 - **Audio buffer:** Apple's player kept ~5 minutes of audio buffered ahead. Its audio pieces (Range requests to `aod-ssl.itunes.apple.com`) are fetched with `window.fetch`, which is wrapped so a piece waits while more than 90 s is buffered ahead of `#apple-music-player`'s current time (polling every 2 s, released at once on abort, held at most 5 minutes). New or skipped-to songs start empty, so they aren't held.
 - **Player bar:** hidden (`html.tv-no-music`) 4 s after playback stops, shown again when it starts (MusicKit `playbackStateDidChange`).
+
+## Native panels (Now Playing, quick menu, voice search)
+- **Drawn by the app, not by Apple's page,** so they stay cheap. They sit above the WebView and the pointer, and take keys first while open.
+- **Now Playing** gets the song from `MusicSession`, which receives MusicKit's events from a page script. The position is extrapolated between events. It redraws every 250 ms while controls are visible, otherwise once a second.
+- **Screensaver:** after `AMBIENT_MS` (2 min) without input, Now Playing dims and drifts. `keepScreenOn` is set only while music plays, so a paused TV can still go to sleep.
+- **Back** is handled in one place (`onBackKey`): holding it `HOLD_BACK_MS` opens the quick menu, and a short press closes the top panel or goes back.
+- **Section links:** clicked on Apple's page through `NAV_JS`, matched with the country part of the address ignored, so they don't reload. If no link is found, the page is loaded instead.
+- **Voice search** uses `RecognizerIntent`, then loads `music.apple.com/<country>/search?term=…`.
+- **Strings:** in `res/values*/strings.xml`, in 8 languages.
 
 ## Widevine certificate
 Apple's service certificate (`play.itunes.apple.com/WebObjects/MZPlay.woa/wa/widevineCert`) is public, 705 bytes, identical for everyone, but served `no-store`, so it was fetched before every song, and on a TV that took ~5 s while the song itself downloaded. `shouldInterceptRequest` now answers it from `files/widevine.cert` and refreshes the file in the background. Play/Shuffle → license went from ~8.7 s to ~1.9 s.

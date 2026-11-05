@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cursor_hint">Стрелки: переход по элементам   ·   Удерживать: плавно   ·   OK: выбрать   ·   Удерживать «Назад»: меню   ·   ▶❚❚: пуск/пауза</string>
+    <string name="input_password">Пароль</string>
+    <string name="input_text">Введите текст</string>
+    <string name="notification_channel">Сейчас играет</string>
+    <string name="np_nothing">Ничего не воспроизводится</string>
+    <string name="np_hint">OK: пуск/пауза   ·   ◀ ▶: назад/вперёд   ·   «Назад»: закрыть</string>
+    <string name="qm_title">Быстрое меню</string>
+    <string name="qm_now_playing">Сейчас играет</string>
+    <string name="qm_voice">Голосовой поиск</string>
+    <string name="qm_search">Поиск</string>
+    <string name="qm_home">Главная</string>
+    <string name="qm_new">Новое</string>
+    <string name="qm_radio">Радио</string>
+    <string name="qm_recent">Недавно добавленные</string>
+    <string name="qm_playlists">Плейлисты</string>
+    <string name="qm_hint">«Назад»: закрыть</string>
+    <string name="voice_prompt">Назовите исполнителя, альбом или песню</string>
+    <string name="voice_unavailable">Голосовой поиск недоступен на этом телевизоре</string>
+    <string name="search_unavailable">Поиск сейчас недоступен. Попробуйте, поставив музыку на паузу.</string>
+</resources>

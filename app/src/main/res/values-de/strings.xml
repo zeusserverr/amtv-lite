@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cursor_hint">Pfeile: zu Elementen springen   ·   Gedrückt halten: gleiten   ·   OK: auswählen   ·   Zurück halten: Menü   ·   ▶❚❚: Wiedergabe/Pause</string>
+    <string name="input_password">Passwort</string>
+    <string name="input_text">Text eingeben</string>
+    <string name="notification_channel">Aktuelle Wiedergabe</string>
+    <string name="np_nothing">Es wird nichts abgespielt</string>
+    <string name="np_hint">OK: Wiedergabe/Pause   ·   ◀ ▶: zurück/weiter   ·   Zurück: schließen</string>
+    <string name="qm_title">Schnellmenü</string>
+    <string name="qm_now_playing">Aktuelle Wiedergabe</string>
+    <string name="qm_voice">Sprachsuche</string>
+    <string name="qm_search">Suchen</string>
+    <string name="qm_home">Start</string>
+    <string name="qm_new">Neu</string>
+    <string name="qm_radio">Radio</string>
+    <string name="qm_recent">Zuletzt hinzugefügt</string>
+    <string name="qm_playlists">Playlists</string>
+    <string name="qm_hint">Zurück: schließen</string>
+    <string name="voice_prompt">Nenne Künstler, Album oder Song</string>
+    <string name="voice_unavailable">Die Sprachsuche ist auf diesem Fernseher nicht verfügbar</string>
+    <string name="search_unavailable">Die Suche ist gerade nicht verfügbar. Versuche es, wenn die Musik pausiert ist.</string>
+</resources>

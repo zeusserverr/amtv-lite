@@ -104,6 +104,8 @@ class MainActivity : Activity() {
     private val u: Float get() = root.width / 1920f
 
     private lateinit var music: MusicSession
+    private lateinit var nowPlaying: NowPlayingView
+    private lateinit var quickMenu: QuickMenuView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,6 +119,13 @@ class MainActivity : Activity() {
         music.attach(web)
         cursor = CursorView(this, onMove = ::hover, onScroll = ::scroll)
         root.addView(cursor, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        nowPlaying = NowPlayingView(this) { action -> if (!webGone) web.evaluateJavascript(MEDIA_JS.replace("%ACTION%", action), null) }
+        nowPlaying.visibility = View.GONE
+        root.addView(nowPlaying, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        quickMenu = QuickMenuView(this, ::onQuickPick)
+        quickMenu.visibility = View.GONE
+        root.addView(quickMenu, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        music.onChange = { nowPlaying.state = it }
         setContentView(root)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
@@ -150,6 +159,8 @@ class MainActivity : Activity() {
     // The WebView is deliberately not paused here, so music keeps playing after leaving the app.
     override fun onPause() {
         handler.removeCallbacks(refreshTargets)
+        handler.removeCallbacks(openQuickMenu)
+        backHeld = false
         CookieManager.getInstance().flush()
         super.onPause()
     }
@@ -162,6 +173,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        music.onChange = null
         input.dismiss()
         closePopup()
         handler.removeCallbacksAndMessages(null) // closePopup queued a re-read
@@ -283,7 +295,10 @@ class MainActivity : Activity() {
 
         // The music.apple.com address as Apple's page changes it (it rarely reloads), to reopen after a rebuild.
         override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
-            if (view === web && url.startsWith("https://music.apple.com/")) lastUrl = url
+            if (view === web && url.startsWith("https://music.apple.com/")) {
+                lastUrl = url
+                android.net.Uri.parse(url).pathSegments.firstOrNull()?.takeIf { it.length == 2 }?.let { lastRegion = it }
+            }
         }
 
         // A page that failed to load (no network yet, e.g. right after the TV wakes) is tried again a few times.
@@ -345,11 +360,16 @@ class MainActivity : Activity() {
     override fun dispatchKeyEvent(e: KeyEvent): Boolean {
         val down = e.action == KeyEvent.ACTION_DOWN
         when (e.keyCode) {
+            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B -> { onBackKey(e); return true }
+            KeyEvent.KEYCODE_SEARCH, KeyEvent.KEYCODE_VOICE_ASSIST -> { if (down && e.repeatCount == 0) startVoiceSearch(); return true }
+        }
+        if (quickMenu.isOpen) return quickMenu.onKey(e) || super.dispatchKeyEvent(e)
+        if (nowPlaying.isOpen) return nowPlaying.onKey(e) || super.dispatchKeyEvent(e)
+        when (e.keyCode) {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> onArrow(e)
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BUTTON_A -> if (down && e.repeatCount == 0) click()
-            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B -> if (!down) back()
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE,
             KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_PREVIOUS,
             KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_REWIND -> if (down && e.repeatCount == 0) media(e.keyCode)
@@ -405,6 +425,136 @@ class MainActivity : Activity() {
     /** Fills in a point given in view px, plus the view width the page uses to convert it to CSS px. */
     private fun withPoint(js: String, x: Float, y: Float) =
         js.replace("%X%", x.toString()).replace("%Y%", y.toString()).replace("%W%", top.width.toString())
+
+    // ---- Back: a short press goes back (or closes a panel); holding it opens the quick menu ----
+    private var backHeld = false
+    private val openQuickMenu = Runnable {
+        backHeld = true
+        if (nowPlaying.isOpen && nowPlaying.wake()) return@Runnable // in the screensaver the press only wakes it
+        stopArrows()
+        quickMenu.show()
+    }
+
+    private fun onBackKey(e: KeyEvent) {
+        if (e.action == KeyEvent.ACTION_DOWN) {
+            if (e.repeatCount == 0) {
+                backHeld = false
+                handler.removeCallbacks(openQuickMenu)
+                handler.postDelayed(openQuickMenu, HOLD_BACK_MS)
+            }
+            return
+        }
+        handler.removeCallbacks(openQuickMenu)
+        if (e.isCanceled) { backHeld = false; return } // the press was interrupted (focus moved away): not a press
+        if (backHeld) { backHeld = false; return } // this press opened the menu
+        when {
+            quickMenu.isOpen -> quickMenu.hide()
+            nowPlaying.isOpen -> if (!nowPlaying.wake()) nowPlaying.hide()
+            else -> back()
+        }
+    }
+
+    private fun openNowPlaying() {
+        stopArrows()
+        nowPlaying.state = music.state
+        nowPlaying.show()
+    }
+
+    /** Ends any arrow hold in progress (its release goes to a panel opened meanwhile, not here). */
+    private fun stopArrows() {
+        for ((code, r) in repeaters) handler.removeCallbacks(r)
+        repeaters.clear()
+        for (code in gliding) cursor.release(code)
+        gliding.clear()
+    }
+
+    private fun onQuickPick(item: QuickMenuView.Item) {
+        when (item) {
+            QuickMenuView.Item.NOW_PLAYING -> openNowPlaying()
+            QuickMenuView.Item.VOICE -> startVoiceSearch()
+            else -> item.path?.let { navigate(it) }
+        }
+    }
+
+    /** The country part of Apple's addresses ("us" in music.apple.com/us/...), for search links. */
+    private fun region(): String {
+        val first = runCatching { android.net.Uri.parse(web.url ?: "").pathSegments.firstOrNull() }.getOrNull()
+        if (first != null && first.length == 2) lastRegion = first
+        return lastRegion
+    }
+
+    /** The last country code seen in Apple's addresses (library pages have none). */
+    private var lastRegion = "us"
+
+    /** Opens a main section by clicking its own link on Apple's page (no reload), or loads it if there is none. */
+    private fun navigate(path: String) {
+        if (webGone) return
+        nowPlaying.hide()
+        closePopupIfAny()
+        if (path == "/search") { search(null); return }
+        val before = top.url
+        web.evaluateJavascript(NAV_JS.replace("%PATH%", path)) { clicked ->
+            if (clicked != "true" && !webGone) {
+                val url = if (path.startsWith("/library")) "https://music.apple.com$path" else "https://music.apple.com/${region()}$path"
+                web.loadUrl(url)
+            }
+        }
+        cursor.focus = null
+        leaveRows()
+        pageChanged()
+        newPage = true
+        newPageFrom = before
+        autoEnter(++autoGen, 0)
+    }
+
+    private fun closePopupIfAny() { if (popup != null) closePopup() }
+
+    // ---- voice search: Android's speech input, then Apple's search page for what was said ----
+    private fun startVoiceSearch() {
+        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt))
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, VOICE_REQUEST)
+        } catch (e: android.content.ActivityNotFoundException) {
+            android.widget.Toast.makeText(this, R.string.voice_unavailable, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    @Deprecated("Only used for voice search")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != VOICE_REQUEST || resultCode != RESULT_OK || webGone) return
+        val said = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.trim()
+        if (said.isNullOrEmpty()) return
+        nowPlaying.hide()
+        closePopupIfAny()
+        search(said)
+    }
+
+    /**
+     * Search inside Apple's page, through its own search box, so nothing reloads and the music keeps playing.
+     * With a [term] it's typed and submitted; without one the box is clicked, which opens the TV text box.
+     * Only if the page has no search box is the search page loaded (a reload), and then only when nothing plays.
+     */
+    private fun search(term: String?) {
+        if (webGone) return
+        cursor.focus = null
+        leaveRows()
+        val js = SEARCH_JS.replace("%TERM%", org.json.JSONObject.quote(term ?: ""))
+        web.evaluateJavascript(js) { found ->
+            if (found == "true" || webGone) { pageChanged(); invalidateTargets(1200); return@evaluateJavascript }
+            if (music.state?.playing == true) {
+                android.widget.Toast.makeText(this, R.string.search_unavailable, android.widget.Toast.LENGTH_LONG).show()
+                return@evaluateJavascript
+            }
+            pageChanged()
+            val q = if (term.isNullOrEmpty()) "" else "?term=" + java.net.URLEncoder.encode(term, "UTF-8")
+            web.loadUrl("https://music.apple.com/${region()}/search$q")
+        }
+    }
 
     private fun onArrow(e: KeyEvent) {
         val code = e.keyCode
@@ -769,6 +919,52 @@ class MainActivity : Activity() {
         private const val SIDEBAR_FRACTION = 0.2f
         private const val HOVER_MS = 500L
         private const val REPEAT_ROW_MS = 110L
+        private const val HOLD_BACK_MS = 600L
+
+        // Apple's search box (looked for through shadow roots too). With a term: typed in and submitted with
+        // Enter, like a keyboard would. Without: clicked, which opens the app's TV text box. Returns found or not.
+        private const val SEARCH_JS = """
+            (function (term) {
+              function find(root) {
+                var el = root.querySelector('input[type="search"], input[role="searchbox"], input[name="search"]');
+                if (el) return el;
+                var all = root.querySelectorAll('*');
+                for (var i = 0; i < all.length; i++) if (all[i].shadowRoot) { el = find(all[i].shadowRoot); if (el) return el; }
+                return null;
+              }
+              var box = find(document);
+              if (!box) return false;
+              if (!term) { box.focus(); box.click(); return true; }
+              box.focus();
+              Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(box, term);
+              box.dispatchEvent(new Event('input', { bubbles: true }));
+              box.dispatchEvent(new Event('change', { bubbles: true }));
+              ['keydown', 'keypress', 'keyup'].forEach(function (t) {
+                box.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+              });
+              if (box.form && box.form.requestSubmit) { try { box.form.requestSubmit(); } catch (e) {} }
+              return true;
+            })(%TERM%)
+        """
+        private const val VOICE_REQUEST = 41
+
+        // A main section's link on Apple's page whose address ends with the given path; clicked if found.
+        private const val NAV_JS = """
+            (function (p) {
+              var links = document.querySelectorAll('a[href]');
+              for (var i = 0; i < links.length; i++) {
+                var path = '';
+                try { path = new URL(links[i].href).pathname.replace(/\/$/, ''); } catch (e) { continue; }
+                var parts = path.split('/'); // "/us/home" -> without the country part: "/home"
+                var rest = parts[1] && parts[1].length === 2 ? '/' + parts.slice(2).join('/') : path;
+                if (rest === p) {
+                  links[i].click();
+                  return true;
+                }
+              }
+              return false;
+            })('%PATH%')
+        """
 
         // The page's own Play button (not the player bar's), in view px, or null. A few querySelector calls only.
         private const val PLAY_BUTTON_JS = """

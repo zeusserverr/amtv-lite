@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cursor_hint">Setas: ir de item em item   ·   Segurar setas: deslizar   ·   OK: selecionar   ·   Segurar Voltar: menu   ·   ▶❚❚: tocar/pausar</string>
+    <string name="input_password">Senha</string>
+    <string name="input_text">Digite o texto</string>
+    <string name="notification_channel">Tocando agora</string>
+    <string name="np_nothing">Nada tocando</string>
+    <string name="np_hint">OK: tocar/pausar   ·   ◀ ▶: anterior/próxima   ·   Voltar: fechar</string>
+    <string name="qm_title">Menu rápido</string>
+    <string name="qm_now_playing">Tocando agora</string>
+    <string name="qm_voice">Busca por voz</string>
+    <string name="qm_search">Buscar</string>
+    <string name="qm_home">Início</string>
+    <string name="qm_new">Novidades</string>
+    <string name="qm_radio">Rádio</string>
+    <string name="qm_recent">Adicionados recentemente</string>
+    <string name="qm_playlists">Playlists</string>
+    <string name="qm_hint">Voltar: fechar</string>
+    <string name="voice_prompt">Diga um artista, álbum ou música</string>
+    <string name="voice_unavailable">A busca por voz não está disponível nesta TV</string>
+    <string name="search_unavailable">A busca não está disponível agora. Tente com a música pausada.</string>
+</resources>
