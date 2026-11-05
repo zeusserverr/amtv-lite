@@ -15,6 +15,27 @@ android {
         versionName = "0.9.2"
     }
 
+    // Release signing comes from ~/.gradle/gradle.properties (AMTV_STORE_FILE, AMTV_STORE_PASSWORD, AMTV_KEY_ALIAS,
+    // AMTV_KEY_PASSWORD), never from this repository. Without them, release builds are left unsigned.
+    signingConfigs {
+        val store = project.findProperty("AMTV_STORE_FILE") as String?
+        if (store != null) {
+            create("release") {
+                storeFile = file(store)
+                storePassword = project.findProperty("AMTV_STORE_PASSWORD") as String?
+                keyAlias = project.findProperty("AMTV_KEY_ALIAS") as String?
+                keyPassword = project.findProperty("AMTV_KEY_PASSWORD") as String?
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
