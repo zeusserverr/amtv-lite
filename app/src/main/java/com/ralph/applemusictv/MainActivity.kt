@@ -774,6 +774,9 @@ class MainActivity : Activity() {
                   // "only render what's in view": off-screen shelves/sections skip layout and paint until
                   // scrolled near (their size is remembered, so the page doesn't jump)
                   'main section, [class*="shelf" i] { content-visibility: auto; contain-intrinsic-size: auto 480px; }' +
+                  // songs in long playlists/albums: rows off screen skip style and layout (a playlist page restyled
+                  // ~5,600 elements per change); 54 px is a row's height, so the list keeps its length and scroll
+                  '.songs-list-row { content-visibility: auto; contain-intrinsic-size: auto 54px; }' +
                   // the animated Now Playing / lyrics background is a canvas redrawn every frame (>100% main-thread
                   // time while visible); the view keeps its normal colors without it
                   'canvas { display: none !important; }' +
