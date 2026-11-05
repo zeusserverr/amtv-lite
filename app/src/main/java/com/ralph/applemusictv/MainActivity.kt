@@ -842,6 +842,24 @@ class MainActivity : Activity() {
                   preloadProp.set.call(this, (isPreview(src) || isPreviewEl(this)) && v !== 'none' ? 'none' : v);
                 }
               });
+              // Album covers: each of a playlist's ~100 covers runs, when it loads,
+              // parseFloat(getComputedStyle(img).opacity) === 1 right after changing the page's state, which made the
+              // browser restyle the whole page ~100 times (~130 ms each: ~15 s of a busy page after opening a playlist,
+              // so remote presses lagged). For those images only, "opacity" is answered as 1 (the cover shows at once,
+              // without its fade); any other property is still read from the browser.
+              var realGetComputedStyle = window.getComputedStyle;
+              window.getComputedStyle = function (el, pseudo) {
+                if (el && el.tagName === 'IMG' && !pseudo && el.classList && el.classList.contains('artwork-component__contents')) {
+                  var real = null;
+                  return new Proxy({}, { get: function (t, k) {
+                    if (k === 'opacity') return '1';
+                    real = real || realGetComputedStyle.call(window, el);
+                    var v = real[k];
+                    return typeof v === 'function' ? v.bind(real) : v;
+                  } });
+                }
+                return realGetComputedStyle.apply(window, arguments);
+              };
               var realPlay = HTMLMediaElement.prototype.play;
               HTMLMediaElement.prototype.play = function () {
                 if (isAmbient(this)) { calm(this); return Promise.resolve(); }
@@ -911,6 +929,8 @@ class MainActivity : Activity() {
                 if (out.length >= 500) return;
                 var rc = el.getBoundingClientRect();
                 if (rc.width < 8 || rc.height < 8) return;
+                // the sidebar's tiny "Edit" toggle (rearranges the sidebar) caught Right presses meant for the page
+                if (el.classList && el.classList.contains('edit-toggle-button')) return;
                 var l = Math.max(0, rc.left), t = Math.max(0, rc.top), r = Math.min(W, rc.right), b = Math.min(H, rc.bottom);
                 if (r - l < 6 || b - t < 6) return;
                 if (modal && !visible(el, l, t, r, b)) return;
