@@ -1,14 +1,31 @@
-# Android Apple Music TV
+<p align="center">
+  <img src="docs/banner.jpg" alt="Android Apple Music TV" width="100%">
+</p>
 
-**Apple Music on Android TV, driven entirely by the TV remote.**
+<p align="center">
+  <a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/zeusserverr/android-apple-music-tv?label=release&color=fa2d55"></a>
+  <a href="https://github.com/zeusserverr/android-apple-music-tv/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/zeusserverr/android-apple-music-tv/total?color=444"></a>
+  <img alt="Android TV 8.0+" src="https://img.shields.io/badge/Android%20TV-8.0%2B-3ddc84">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
 
-The official Apple Music app isn't available for many Android TV devices, including the NVIDIA SHIELD ("Your device isn't compatible"). This app is a full-screen, TV-friendly window onto Apple's own web player at [music.apple.com](https://music.apple.com). Apple's player does the music, and this app makes it work from the couch: a remote-controlled pointer, song-by-song lists, on-screen text entry, and playback that keeps going after you press Home.
+<h3 align="center">
+  <a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk">⬇️ Download the APK</a>
+</h3>
 
-> **Unofficial.** Not made by, endorsed by, or affiliated with Apple. "Apple Music" is a trademark of Apple Inc. This app contains no Apple code: it opens music.apple.com, and you sign in with your own Apple ID and subscription.
+<p align="center">
+  <a href="#download-and-install">Install guide</a> ·
+  <a href="docs/demo-switch-playlists.mp4">Demo video</a> ·
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="#faq">FAQ</a>
+</p>
 
-**[⬇️ Download the APK](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk)** · [How to install](#download-and-install) · [Demo video](docs/demo-switch-playlists.mp4)
+---
 
-![Home](docs/screenshots/01-home.jpg)
+The official Apple Music app isn't available for many Android TV devices, including the NVIDIA SHIELD ("Your device isn't compatible"). **Android Apple Music TV** is a full-screen, TV-friendly window onto Apple's own web player at [music.apple.com](https://music.apple.com): Apple's player does the music, and this app makes it work from the couch. It gives you a remote-controlled highlight, song-by-song lists, on-screen text entry, and playback that keeps going after you press Home.
+
+> **Unofficial.** Not made by, endorsed by, or affiliated with Apple. "Apple Music" is a trademark of Apple Inc. The app contains no Apple code: it opens music.apple.com, and you sign in with your own Apple ID and subscription.
 
 ## What it can do
 
@@ -86,6 +103,26 @@ Install a newer APK the same way; it updates in place and you stay signed in.
 | **Home** | Back to your launcher; the music keeps playing |
 | **Play/Pause, ⏭, ⏮** | Control playback from anywhere |
 
+## FAQ
+
+**Is it safe to sign in?**
+You sign in on Apple's own sign-in page inside the app, just like in a browser. Because TV keyboards don't work well inside web pages, the app shows its own text box and passes what you type straight into Apple's field. It doesn't save, log or send it anywhere else, and the code is here to check (`TvInput.kt`).
+
+**Do I need an Apple Music subscription?**
+Yes. Without one, Apple's player only plays previews.
+
+**Does it work on my TV?**
+It needs Android TV 8.0 or newer with an up-to-date **Android System WebView** that supports Widevine, which covers most Android TV and Google TV devices. It's tested on an NVIDIA SHIELD. Amazon Fire TV hasn't been tested.
+
+**Lossless, Hi-Res or Dolby Atmos?**
+No. Apple's web player streams 256 kbps AAC, and this app can only play what the web player offers.
+
+**Why not the official app?**
+Apple's Android TV app isn't offered for many devices. This app works on those devices because it uses the web player Apple provides for browsers.
+
+**Something isn't working.**
+[Open an issue](https://github.com/zeusserverr/android-apple-music-tv/issues/new/choose) with your TV model and what happened. A short phone video of what the remote does helps a lot.
+
 ## Known limits
 - **It's Apple's web player.** What music.apple.com supports is what you get: 256 kbps AAC, no Lossless or Dolby Atmos (the web player doesn't offer them), and it depends on Apple not changing their website in ways that break it.
 - **Playback uses about half of one CPU core** (on a SHIELD), mostly Android's protected-audio decoding, which the app can't change.
@@ -116,4 +153,7 @@ Keep that keystore safe. Updates must be signed with the same key, or Android re
 - **Remote navigation:** the app reads the page's clickable items, picks the best one in the arrow's direction, and moves a highlight there. Clicks are sent as taps. In song lists, the page itself finds the next or previous song and scrolls it into place.
 - **Widevine** is allowed for apple.com only. A foreground media service keeps playback alive in the background.
 - **Lightness work** is done with small scripts injected at page start: the preview, cover and player-bar fixes listed above. The DRM certificate is served from the device via `shouldInterceptRequest`.
-- Developer notes, measurements and history are in [HANDOFF.md](HANDOFF.md).
+- Developer notes and measurements: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## License
+[MIT](LICENSE) © zeusserverr. "Apple Music" and Apple are trademarks of Apple Inc.; this project is independent and unofficial.

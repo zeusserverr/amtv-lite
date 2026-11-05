@@ -1,0 +1,32 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: TV device and Android version
+      placeholder: e.g. NVIDIA SHIELD (2019), Android 11
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: e.g. 0.9.2 (Settings → Apps → Android Apple Music TV)
+  - type: input
+    id: webview
+    attributes:
+      label: Android System WebView version (if you know it)
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Screenshots, or a video of what the remote does, help a lot. Please don't include your Apple ID or email.
