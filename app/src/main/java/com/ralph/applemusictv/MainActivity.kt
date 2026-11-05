@@ -59,6 +59,11 @@ class MainActivity : Activity() {
     private var targets: List<RectF> = emptyList()
     private var primaryTargets: List<RectF> = emptyList() // Play / Shuffle buttons
     private var playTargets: List<RectF> = emptyList() // just the Play buttons
+    /** The floating player bar (null while it's hidden or absent), from the last read of the page. */
+    private var playerBar: RectF? = null
+
+    private fun onBar(x: Float, y: Float) = playerBar?.let { b -> x >= b.left && x <= b.right && y >= b.top - 8f && y <= b.bottom } == true
+    private fun inBar(r: RectF) = onBar(r.centerX(), r.centerY())
     private var fetching = false
     private var targetsAt = 0L
     /** When the page last changed (a click, Back, a scroll): targets read before then describe another page. */
@@ -431,15 +436,14 @@ class MainActivity : Activity() {
         if (code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_LEFT) newPage = false
         // Down on the page passes over the floating player bar: with nothing else below, the page scrolls (Home,
         // New, long lists). Only once the page can't scroll further (the second, after-scroll try) is the bar a stop.
-        val barY = root.height * 0.86f
-        val skipBar = code == KeyEvent.KEYCODE_DPAD_DOWN && retry && cursor.py < barY
-        val candidates = if (skipBar) targets.filter { it.centerY() < barY } else targets
+        val skipBar = code == KeyEvent.KEYCODE_DPAD_DOWN && retry && !onBar(cursor.px, cursor.py)
+        val candidates = if (skipBar) targets.filter { !inBar(it) } else targets
         val best = (if (code == KeyEvent.KEYCODE_DPAD_RIGHT && inSidebar()) enterContent() else null) ?: pick(candidates, code)
         lastJumpMoved = best != null
         if (best != null) {
             snapTo(best)
             if (SystemClock.uptimeMillis() - targetsAt > 4000) invalidateTargets(300)
-        } else if (retry && code == KeyEvent.KEYCODE_DPAD_DOWN && cursor.py > root.height * 0.86f) {
+        } else if (retry && code == KeyEvent.KEYCODE_DPAD_DOWN && onBar(cursor.px, cursor.py)) {
             lastJumpMoved = false // on the player bar: the bottom of the screen
         } else if (retry && (code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_DOWN)) {
             lastJumpMoved = true // scrolling counts as moving, so a held arrow keeps going
@@ -459,14 +463,13 @@ class MainActivity : Activity() {
      */
     private fun enterContent(): RectF? {
         val edge = root.width * SIDEBAR_FRACTION
-        val bar = root.height * 0.86f // the floating player bar has its own Play and Shuffle: never the page's
-        // the Play button first, then Shuffle
+        // the Play button first, then Shuffle (never the player bar's own Play and Shuffle)
         for (list in listOf(playTargets, primaryTargets)) {
-            list.filter { it.left >= edge && it.top >= 0f && it.centerY() < bar }
+            list.filter { it.left >= edge && it.top >= 0f && !inBar(it) }
                 .minWithOrNull(compareBy({ it.top }, { it.left }))?.let { return it }
         }
         val row = 40f * u
-        return targets.filter { it.left >= edge && it.top >= 0f && it.centerY() < bar }
+        return targets.filter { it.left >= edge && it.top >= 0f && !inBar(it) }
             .minWithOrNull(compareBy({ (it.top / row).toInt() }, { it.left }))
     }
 
@@ -551,6 +554,7 @@ class MainActivity : Activity() {
             val all = ArrayList<RectF>()
             val primary = ArrayList<RectF>()
             val play = ArrayList<RectF>()
+            var bar: RectF? = null
             runCatching {
                 val arr = JSONArray(JSONTokener(result).nextValue() as String)
                 for (i in 0 until arr.length()) {
@@ -558,14 +562,16 @@ class MainActivity : Activity() {
                     val l = a.getDouble(0).toFloat()
                     val t = a.getDouble(1).toFloat()
                     val r = RectF(l, t, l + a.getDouble(2).toFloat(), t + a.getDouble(3).toFloat())
-                    all += r
+                    if (a.optInt(4) != 9) all += r
                     when (a.optInt(4)) {
+                        9 -> { bar = r; continue }
                         1 -> { primary += r; play += r }
                         2 -> primary += r
                     }
                 }
             }
             playTargets = play
+            playerBar = bar
             callback(all, primary)
         }
     }
@@ -783,10 +789,29 @@ class MainActivity : Activity() {
                   // time while visible); the view keeps its normal colors without it
                   'canvas { display: none !important; }' +
                   // the "now playing" equalizer bars loop forever and restyle every frame
-                  '[class*="playback-bars"] { animation: none !important; }';
+                  '[class*="playback-bars"] { animation: none !important; }' +
+                  // the floating player bar only while music plays (it covered the bottom of every page, and Down
+                  // got caught on it): hidden a few seconds after playback stops, back as soon as it starts
+                  'html.tv-no-music .chrome-player { visibility: hidden !important; }';
                 (document.head || document.documentElement).appendChild(s);
               }
               if (document.documentElement) add(); else document.addEventListener('DOMContentLoaded', add);
+
+              // playing or not, from MusicKit's own events (checked once a second only until MusicKit exists)
+              var hideLater = null;
+              function music(m) {
+                var playing = !!(m && m.isPlaying);
+                clearTimeout(hideLater);
+                if (playing) document.documentElement.classList.remove('tv-no-music');
+                else hideLater = setTimeout(function () { document.documentElement.classList.add('tv-no-music'); }, 4000);
+              }
+              var waitKit = setInterval(function () {
+                var m = window.MusicKit && MusicKit.getInstance && MusicKit.getInstance();
+                if (!m) return;
+                clearInterval(waitKit);
+                m.addEventListener('playbackStateDidChange', function () { music(m); });
+                music(m);
+              }, 1000);
 
               // Animated album covers are muted, looping videos; each one is a video decode running in the
               // background. Stop them (the still cover underneath shows instead). Music videos aren't muted/looped.
@@ -924,6 +949,8 @@ class MainActivity : Activity() {
               // elementFromPoint per item was ~3% of the CPU; it only matters while a dialog covers the page
               var modal = document.querySelector('[aria-modal="true"], dialog[open], [role="dialog"]');
               var bar = document.querySelector('.chrome-player'), br = bar && bar.getBoundingClientRect();
+              // while it's hidden (nothing playing) the bar and its buttons don't exist for the remote
+              if (document.documentElement.classList.contains('tv-no-music')) { br = null; }
               function add(el) {
                 if (out.length >= 500) return;
                 var rc = el.getBoundingClientRect();
@@ -933,6 +960,7 @@ class MainActivity : Activity() {
                 var l = Math.max(0, rc.left), t = Math.max(0, rc.top), r = Math.min(W, rc.right), b = Math.min(H, rc.bottom);
                 if (r - l < 6 || b - t < 6) return;
                 if (modal && !visible(el, l, t, r, b)) return;
+                if (!br && bar && bar.contains(el)) return; // hidden bar's buttons
                 if (br && br.width > 0) {
                   var cx = (l + r) / 2, cy = (t + b) / 2;
                   if (cx >= br.left && cx <= br.right && cy >= br.top - 8 && cy <= br.bottom && !bar.contains(el) && !bar.contains(outerHost(el))) return;
@@ -967,6 +995,8 @@ class MainActivity : Activity() {
                 // measure those directly this once, so jumps reach a new page immediately
                 newcomers.forEach(add);
               }
+              // the bar's own rect, marked 9, so Up/Down can tell "on the bar" from "near the bottom"
+              if (br && br.width > 0 && br.height > 0) out.push([br.left * s, br.top * s, br.width * s, br.height * s, 9]);
               return JSON.stringify(out);
             })(%W%);
         """
