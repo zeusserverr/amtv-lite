@@ -619,10 +619,13 @@ class MainActivity : Activity() {
         invalidateTargets(1500)
     }
 
+    /**
+     * One hover once the pointer has rested, not a stream while it moves: Apple's page restyles itself on every
+     * hover, ~250 ms each on a long playlist, so a hover every 250 ms while moving kept it busy and made presses lag.
+     */
     private fun hover(x: Float, y: Float) {
-        val now = SystemClock.uptimeMillis()
         handler.removeCallbacks(trailingHover)
-        if (now - lastHover >= HOVER_MS) sendHover() else handler.postDelayed(trailingHover, HOVER_MS)
+        handler.postDelayed(trailingHover, HOVER_MS)
     }
 
     private fun sendHover() {
@@ -667,7 +670,7 @@ class MainActivity : Activity() {
         private const val HOLD_MS = 350L
         private const val REPEAT_MIN_MS = 70L
         private const val SIDEBAR_FRACTION = 0.2f
-        private const val HOVER_MS = 250L
+        private const val HOVER_MS = 500L
         private const val REPEAT_ROW_MS = 110L
 
         // The page's own Play button (not the player bar's), in view px, or null. A few querySelector calls only.
