@@ -19,4 +19,6 @@
     <string name="voice_prompt">Назовите исполнителя, альбом или песню</string>
     <string name="voice_unavailable">Голосовой поиск недоступен на этом телевизоре</string>
     <string name="search_unavailable">Поиск сейчас недоступен. Попробуйте, поставив музыку на паузу.</string>
+    <string name="voice_needs_mic">Для голосового поиска нужен доступ к микрофону</string>
+    <string name="input_voice">🎤  Голосовой поиск</string>
 </resources>

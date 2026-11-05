@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.1 — 2026-11-05
+- **Search** works while music plays: it opens Apple's own search, so nothing reloads. Type, or press Down to the mic button and speak. The quick menu has one Search entry for both.
+- **Fixed:** voice search heard nothing. It needs microphone access, which the app now asks for the first time (the speech is handled by Google's voice service; the app records nothing).
+- **Fixed:** the live radio stations under "On Air Now" (Apple Music 1, Hits, Country...) did nothing when selected; OK now plays them.
+- **Fixed:** the arrows could stop working after the Apple sign-in window closed.
+- **Fixed:** auto-landing on Play and Right from the sidebar now also work when Apple Music is in another language.
+- **Fixed:** with no network, the app retried loading every few seconds forever, and a late retry could reload the page while music played. Section links in the quick menu no longer reload the page while music plays.
+- **Fixed:** Now Playing could jump back to the previous song's time when the cover arrived; holding Back with the menu open now closes it.
+- Android backups no longer include the Apple sign-in.
+- **Lighter and snappier** (measured on a SHIELD with music playing):
+  - Apple's moving artwork (Home's banners, artist headers, playlist covers) no longer downloads: Home pulled **47 MB of video in 8 seconds**, artist pages ~2.8 MB each. The still artwork shows instead.
+  - Opening pages: Home is busy for ~1.7 s instead of ~5 s, New ~1.8 s instead of ~5 s, Radio ~1.3 s instead of ~2.3 s.
+  - Scrolling: page animations are off (an artist page's header ran five scroll-linked blur effects), and parts of a page already shown aren't rebuilt when you scroll back to them.
+  - Search: typing reaches Apple's page once you pause, not on every letter (each letter made it fetch and redraw suggestions).
+  - The app's own reading of the page waits until Apple has built it, instead of making the TV lay it out twice.
+
 ## 0.10.0 — 2026-11-05
 - **Now Playing:** a full-screen view with the cover, song, artist, album and progress on a background tinted from the cover. OK plays or pauses; ◀ ▶ skip.
 - **Screensaver:** after 2 minutes without a button press, Now Playing dims and drifts slowly, and keeps the TV's own screensaver away while music plays. The first press wakes it.

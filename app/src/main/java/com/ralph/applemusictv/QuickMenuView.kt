@@ -10,14 +10,13 @@ import android.view.KeyEvent
 import android.view.View
 
 /**
- * Hold Back anywhere for this panel: straight to Now Playing, the main sections of Apple Music, or voice search,
+ * Hold Back anywhere for this panel: straight to Now Playing, search (typed or spoken) or a main section,
  * instead of many arrow presses. Drawn by the app; Up/Down choose, OK opens, Back closes.
  */
 class QuickMenuView(context: Context, private val onPick: (Item) -> Unit) : View(context) {
 
     enum class Item(val label: Int, val path: String?) {
         NOW_PLAYING(R.string.qm_now_playing, null),
-        VOICE(R.string.qm_voice, null),
         SEARCH(R.string.qm_search, "/search"),
         HOME(R.string.qm_home, "/home"),
         NEW(R.string.qm_new, "/new"),

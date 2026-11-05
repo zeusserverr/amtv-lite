@@ -61,8 +61,6 @@ class CursorView(
     private val arrow = Path()
 
     private val u get() = width / 1920f
-    val isGliding: Boolean get() = held.isNotEmpty()
-
     fun press(keyCode: Int) {
         if (held.isEmpty()) heldSince = SystemClock.uptimeMillis()
         held += keyCode

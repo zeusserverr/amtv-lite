@@ -20,4 +20,6 @@
     <string name="voice_prompt">Say an artist, album or song</string>
     <string name="voice_unavailable">Voice search isn’t available on this TV</string>
     <string name="search_unavailable">Search isn’t available right now. Try again when the music is paused.</string>
+    <string name="voice_needs_mic">Voice search needs microphone access</string>
+    <string name="input_voice">🎤  Voice search</string>
 </resources>

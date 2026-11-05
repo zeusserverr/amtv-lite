@@ -49,7 +49,7 @@ Apple's web player is designed for a computer with a mouse. Instead of re-creati
 - **TV text entry.** Its own on-screen text box types into Apple's sign-in and search fields, including Apple's sign-in frame.
 - **Background music.** Playback keeps going after you press Home, with proper media-app priority, and the remote's play/pause/skip keys work from anywhere.
 - **Now Playing and screensaver.** A full-screen Now Playing view, drawn by the app itself: big cover, song, progress, and a background tinted from the cover. After 2 minutes without a button press it turns into a dim, slowly drifting screensaver.
-- **Quick menu and voice search.** Hold **Back** for a menu that jumps straight to Now Playing, Search, Home, New, Radio, Recently Added or Playlists. Voice search finds an artist, album or song by voice.
+- **Quick menu and voice search.** Hold **Back** for a menu that jumps straight to Now Playing, Search, Home, New, Radio, Recently Added or Playlists. Search lets you type or speak (the text box has a mic button), and the music keeps playing while you search.
 - **Your language.** The app's own text is in English, Spanish, French, German, Portuguese, Italian, Japanese and Russian. Apple's page follows your Apple Music settings.
 - **Tuned for TV hardware.** Small scripts make Apple's page lighter. Measured on an NVIDIA SHIELD:
 
@@ -95,7 +95,7 @@ To update, do the same again; the new version installs over the old one. Prefer 
 | Arrows | Move the highlight; in song lists, one song per press |
 | OK | Select or play |
 | Back | Go back, or close Now Playing / the menu; on the first page, leave with the music still playing |
-| **Hold Back** | Quick menu: Now Playing, voice search, Search, Home, New, Radio, Recently Added, Playlists |
+| **Hold Back** | Quick menu: Now Playing, Search (type or speak), Home, New, Radio, Recently Added, Playlists |
 | Mic / Search button | Voice search (on remotes that send it to the app) |
 | In Now Playing | OK play/pause · ◀ ▶ previous/next |
 | Play/Pause, ⏭, ⏮ | Control playback from anywhere |

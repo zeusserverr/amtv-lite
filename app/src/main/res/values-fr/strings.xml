@@ -19,4 +19,6 @@
     <string name="voice_prompt">Dites un artiste, un album ou un titre</string>
     <string name="voice_unavailable">La recherche vocale n’est pas disponible sur ce téléviseur</string>
     <string name="search_unavailable">La recherche n’est pas disponible pour le moment. Réessayez avec la musique en pause.</string>
+    <string name="voice_needs_mic">La recherche vocale a besoin du micro</string>
+    <string name="input_voice">🎤  Recherche vocale</string>
 </resources>

@@ -19,4 +19,6 @@
     <string name="voice_prompt">アーティスト、アルバム、曲名を話してください</string>
     <string name="voice_unavailable">このテレビでは音声検索を利用できません</string>
     <string name="search_unavailable">現在、検索は利用できません。音楽を一時停止してからもう一度お試しください。</string>
+    <string name="voice_needs_mic">音声検索にはマイクへのアクセスが必要です</string>
+    <string name="input_voice">🎤  音声検索</string>
 </resources>

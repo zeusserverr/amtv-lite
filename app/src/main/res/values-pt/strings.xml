@@ -19,4 +19,6 @@
     <string name="voice_prompt">Diga um artista, álbum ou música</string>
     <string name="voice_unavailable">A busca por voz não está disponível nesta TV</string>
     <string name="search_unavailable">A busca não está disponível agora. Tente com a música pausada.</string>
+    <string name="voice_needs_mic">A busca por voz precisa de acesso ao microfone</string>
+    <string name="input_voice">🎤  Busca por voz</string>
 </resources>

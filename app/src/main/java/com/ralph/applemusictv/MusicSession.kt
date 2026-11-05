@@ -17,12 +17,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
 
-/**
- * Tells Android what the web player is playing. WebView doesn't do this on its own the way Chrome does, so
- * without it the XMB's Now Playing card, the remote's play/pause (while in another app) and the screensaver's
- * song line can't see Apple Music. A small page script listens to MusicKit's events and posts the song here;
- * Android's play/pause/skip come back through [control].
- */
 /** What's playing, for the app's own Now Playing screen. [positionMs] was measured at [positionAt] (elapsedRealtime). */
 class NowState(
     val title: String, val artist: String, val album: String, val art: Bitmap?,
@@ -35,6 +29,12 @@ class NowState(
     }
 }
 
+/**
+ * Tells Android what the web player is playing. WebView doesn't do this on its own the way Chrome does, so
+ * without it launchers' Now Playing cards, the remote's play/pause (while in another app) and the system's
+ * screensaver can't see Apple Music. A small page script listens to MusicKit's events and posts the song here;
+ * Android's play/pause/skip come back through [control].
+ */
 class MusicSession(private val context: Context, private val control: (action: String) -> Unit) {
     /** The current song (null when nothing is loaded), and a callback for every change, art included. */
     var state: NowState? = null
@@ -87,13 +87,22 @@ class MusicSession(private val context: Context, private val control: (action: S
                     conn.readTimeout = 8000
                     try { conn.inputStream.use { BitmapFactory.decodeStream(it) } } finally { conn.disconnect() }
                 }.getOrNull()
-                main.post { if (artUrl == url) { art = bmp; last?.let { publish(it) } } }
+                main.post { if (artUrl == url && !released) { art = bmp; last?.let { publish(it, artOnly = true) } } }
             }
         }
         publish(m)
     }
 
-    private fun publish(m: JSONObject) {
+    /** [artOnly]: the same report again, now with its cover; its position is old, so the moving one is kept. */
+    private fun publish(m: JSONObject, artOnly: Boolean = false) {
+        val title = m.optString("title")
+        val raw = m.optLong("position")
+        val position = when {
+            artOnly && state?.title == title -> state!!.positionNow()
+            // on a song change MusicKit can still report the previous song's time; a new song starts near 0
+            title != state?.title && raw > 5_000L -> 0L
+            else -> raw
+        }
         session.setMetadata(MediaMetadata.Builder()
             .putString(MediaMetadata.METADATA_KEY_TITLE, m.optString("title"))
             .putString(MediaMetadata.METADATA_KEY_ARTIST, m.optString("artist"))
@@ -106,13 +115,10 @@ class MusicSession(private val context: Context, private val control: (action: S
             .setActions(PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE or PlaybackState.ACTION_PLAY_PAUSE or
                 PlaybackState.ACTION_SKIP_TO_NEXT or PlaybackState.ACTION_SKIP_TO_PREVIOUS or PlaybackState.ACTION_STOP)
             .setState(if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
-                m.optLong("position"), if (playing) 1f else 0f, SystemClock.elapsedRealtime())
+                position, if (playing) 1f else 0f, SystemClock.elapsedRealtime())
             .build())
         session.isActive = true
         setPlaying(playing, m)
-        val title = m.optString("title")
-        // on a song change MusicKit can still report the previous song's time; a new song starts near 0
-        val position = if (title != state?.title && m.optLong("position") > 5_000L) 0L else m.optLong("position")
         state = NowState(title, m.optString("artist"), m.optString("album"), art,
             m.optLong("duration"), position, SystemClock.elapsedRealtime(), playing)
         onChange?.invoke(state)
@@ -144,7 +150,10 @@ class MusicSession(private val context: Context, private val control: (action: S
     /** The page went away (its renderer was stopped): nothing is playing any more. */
     fun pageLost() = update(JSONObject().put("title", ""))
 
+    private var released = false
+
     fun release() {
+        released = true
         main.removeCallbacks(stopLater)
         if (foreground) PlaybackService.stopped(context)
         session.release()

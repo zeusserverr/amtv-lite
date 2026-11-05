@@ -29,13 +29,17 @@ A single-activity app. A full-screen `WebView` loads `https://music.apple.com/`,
 - **Targets:** `TARGETS_JS` returns the visible clickable elements (walking open shadow roots) as rects in view px. An `IntersectionObserver` tracks which candidates are on screen, so only those are measured. Items under the floating player bar are skipped, and the bar's own rect is returned (flag `9`) so the app can tell "on the bar" from "near the bottom".
 - **Never block a key press on the page.** Jumps use the cached targets; `refresh()` runs one request at a time after actions. Blocking on the page queued presses up and then fired them all at once.
 - **Jumps:** `pick()` scores candidates by distance in the arrow's direction plus 3× the sideways offset. Up/Down stay in their column (sidebar vs page). Down on the page passes over the player bar and scrolls instead; the bar is reached only at the end of a page.
-- **Song lists:** when the highlight is on a `.songs-list-row`, Up/Down go through `ROW_STEP_JS`, which finds the neighbouring row, scrolls `.scrollable-page` so it sits in the middle band (30–62% of the height), and returns its rect.
+- **Song lists:** when the highlight is on a `.songs-list-row`, Up/Down go through `ROW_STEP_JS`, which finds the neighbouring row, scrolls the row's first scrollable ancestor so it sits in the middle band (30–62% of the height), and returns its rect.
 - **Clicks** are touch taps (`SOURCE_TOUCHSCREEN`). Synthetic mouse clicks are ignored by WebView. OK on a song row presses that row's own Play button (`PLAY_ROW_JS`), since a tap on a row only selects it.
 - **New pages:** after a click or Back, the first Down/Right waits for the new page (Apple shows placeholders first), and the highlight moves to the page's Play button by itself (`PLAY_BUTTON_JS`, polled every 400 ms for up to ~6 s, only once the address has changed).
 - **Hover** is sent once the pointer rests (500 ms). Every hover restyles Apple's page.
 
 ## Making Apple's page lighter
-All in `LIGHTER_CSS_JS`, music.apple.com only:
+All in `LIGHTER_CSS_JS`, music.apple.com only. Numbers are from the SHIELD with music playing, measured with Long Animation Frame entries and CDP network events (no tracing, no initiator stacks: both slowed the TV). Apple's page has its `PerformanceObserver.observe` switched off; the real one is kept as `window.__tvObserve` for measuring.
+
+- `<amp-ambient-video>` (moving artwork) is defined as an inert stand-in, so its HLS player never starts (Home: 47 MB of video in 8 s before).
+- `* { animation: none }`; sections and shelves get `content-visibility: auto`, and once shown they're marked `data-tv-shown` and stay rendered (`contentvisibilityautostatechange`).
+
 - **Previews:** playlist pages contain `<audio data-testid="preview-player" preload="auto">` elements that downloaded six ~3 MB previews on every open and delayed Play/Shuffle by ~20 s. `setAttribute`, the `preload` setter and `new Audio()` are hooked so previews stay at `preload="none"` until played.
 - **Album covers:** each cover's load handler ran `getComputedStyle(img).opacity` right after changing the page's state, forcing a full restyle per cover (~130 ms × ~100 covers). For `img.artwork-component__contents` only, `getComputedStyle` answers `opacity` as `1` (other properties come from the browser). Busy time after opening a playlist went from 15–18 s to 3–4 s.
 - **Rendering:** off-screen `.songs-list-row`, `main section` and shelves use `content-visibility: auto`. `backdrop-filter`, lyric blur, the animated now-playing canvas and the equalizer animation are off. Muted, looping cover videos never load. The page is told `prefers-reduced-motion`.
@@ -48,7 +52,9 @@ All in `LIGHTER_CSS_JS`, music.apple.com only:
 - **Screensaver:** after `AMBIENT_MS` (2 min) without input, Now Playing dims and drifts. `keepScreenOn` is set only while music plays, so a paused TV can still go to sleep.
 - **Back** is handled in one place (`onBackKey`): holding it `HOLD_BACK_MS` opens the quick menu, and a short press closes the top panel or goes back.
 - **Section links:** clicked on Apple's page through `NAV_JS`, matched with the country part of the address ignored, so they don't reload. If no link is found, the page is loaded instead.
-- **Voice search** uses `RecognizerIntent`, then loads `music.apple.com/<country>/search?term=…`.
+- **Search** (`search()` / `SEARCH_JS`) works inside Apple's page, so the music keeps playing: it uses Apple's own search box, and when the page has none it first clicks the sidebar's Search link (no reload) and waits for the box. Clicking the box opens the TV text box, which has a mic button on search boxes. Only if there's no link either does it load the search page, and never while music plays.
+- **Voice search** uses `RecognizerIntent` (Google's speech service, which needs the app to hold `RECORD_AUDIO`; it's asked for the first time). What was said goes through `SEARCH_JS` like typed text.
+- **Play / Shuffle** are recognised by `ACTION_KIND_JS`: Apple's class names first (not translated), then the button labels in the app's languages.
 - **Strings:** in `res/values*/strings.xml`, in 8 languages.
 
 ## Widevine certificate
@@ -83,4 +89,5 @@ If Android stops the page's renderer (to free memory, usually while the TV sleep
 
 ## Ground rules
 - Never handle anyone's Apple ID password: the user signs in themselves, and typed values are never logged or stored.
-- Only apple.com origins get DRM and the injected scripts.
+- Only apple.com origins get DRM, the document-start scripts and the two bridges (`tvInput`, `tvMedia`). The app's own read-only `evaluateJavascript` calls (reading targets) run on whatever page is shown.
+- `android:allowBackup="false"`: Android backups would otherwise include the WebView's cookies (the Apple sign-in).

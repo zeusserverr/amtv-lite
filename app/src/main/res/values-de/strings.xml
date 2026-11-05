@@ -19,4 +19,6 @@
     <string name="voice_prompt">Nenne Künstler, Album oder Song</string>
     <string name="voice_unavailable">Die Sprachsuche ist auf diesem Fernseher nicht verfügbar</string>
     <string name="search_unavailable">Die Suche ist gerade nicht verfügbar. Versuche es, wenn die Musik pausiert ist.</string>
+    <string name="voice_needs_mic">Die Sprachsuche braucht Zugriff auf das Mikrofon</string>
+    <string name="input_voice">🎤  Sprachsuche</string>
 </resources>

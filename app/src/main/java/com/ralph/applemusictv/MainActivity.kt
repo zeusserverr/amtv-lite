@@ -67,7 +67,7 @@ class MainActivity : Activity() {
     private fun inBar(r: RectF) = onBar(r.centerX(), r.centerY())
     private var fetching = false
     private var targetsAt = 0L
-    /** When the page last changed (a click, Back, a scroll): targets read before then describe another page. */
+    /** When the page last changed (a click, Back, a new page): targets read before then describe another page. */
     private var pageChangedAt = 0L
 
     private fun pageChanged() { pageChangedAt = SystemClock.uptimeMillis() }
@@ -79,25 +79,65 @@ class MainActivity : Activity() {
     private var newPageFrom: String? = null
     private val refreshTargets = Runnable { refresh() }
 
-    private fun refresh(then: (() -> Unit)? = null) {
-        if (webGone) return
+    /** Bumped for every read of the page, and when a page goes away: an answer for an older id is ignored. */
+    private var fetchId = 0
+    /** What to do once the read in progress answers (the latest press wins; earlier ones are dropped). */
+    private var afterFetch: (() -> Unit)? = null
+    /** A read whose page was closed or died never answers: after 2 s it's given up, so the arrows keep working. */
+    private val fetchTimeout = Runnable {
         if (fetching) {
-            if (then != null) handler.postDelayed({ refresh(then) }, 100)
-            return
-        }
-        fetching = true
-        val asked = SystemClock.uptimeMillis()
-        fetchTargets { all, primary ->
             fetching = false
-            targets = all
-            primaryTargets = primary
-            targetsAt = asked
-            then?.invoke()
+            fetchId++
+            afterFetch?.let { afterFetch = null; refresh(it) }
         }
     }
 
+    private fun refresh(then: (() -> Unit)? = null) {
+        if (webGone) return
+        if (fetching) {
+            if (then != null) afterFetch = then
+            return
+        }
+        fetching = true
+        val id = ++fetchId
+        val asked = SystemClock.uptimeMillis()
+        handler.removeCallbacks(fetchTimeout)
+        handler.postDelayed(fetchTimeout, 2000)
+        fetchTargets { all, primary, play, bar ->
+            if (id != fetchId) return@fetchTargets
+            handler.removeCallbacks(fetchTimeout)
+            fetching = false
+            targets = all
+            primaryTargets = primary
+            playTargets = play
+            playerBar = bar
+            targetsAt = asked
+            then?.invoke()
+            afterFetch?.let { afterFetch = null; refresh(it) }
+        }
+    }
+
+    /** The page that was asked something is gone (pop-up closed, renderer died): stop waiting for its answers. */
+    private fun forgetAnswers() {
+        fetching = false
+        fetchId++
+        afterFetch = null
+        handler.removeCallbacks(fetchTimeout)
+        handler.removeCallbacks(retryJump)
+        rowBusy = false
+        rowQueued = 0
+        handler.removeCallbacks(rowUnstick)
+    }
+
+    /** A jump tried again shortly (a page still loading, a scroll settling): only the latest one is kept. */
+    private var retryJump = Runnable {}
+    private fun jumpLater(code: Int, retry: Boolean) {
+        handler.removeCallbacks(retryJump)
+        retryJump = Runnable { refresh { jumpWith(code, retry) } }
+        handler.postDelayed(retryJump, 250)
+    }
+
     // hover is throttled: the page re-styles on every hover event, which made sliding janky
-    private var lastHover = 0L
     private val trailingHover = Runnable { sendHover() }
 
     private val top: WebView get() = popup ?: web
@@ -126,6 +166,7 @@ class MainActivity : Activity() {
         quickMenu.visibility = View.GONE
         root.addView(quickMenu, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         music.onChange = { nowPlaying.state = it }
+        input.onVoice = ::startVoiceSearch
         setContentView(root)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
@@ -265,10 +306,15 @@ class MainActivity : Activity() {
         }
 
         override fun onPageFinished(view: WebView, url: String) {
-            if (view === web && url.startsWith("https://music.apple.com/")) { lastUrl = url; loadRetries = 0 }
+            if (view === web) {
+                // WebView also "finishes" the error page of a failed load: only a real load resets the retries
+                if (loadFailed) loadFailed = false
+                else { loadRetries = 0; handler.removeCallbacks(reloadPage) }
+                if (url.startsWith("https://music.apple.com/")) lastUrl = url
+            }
             CookieManager.getInstance().flush()
             pageChanged()
-            invalidateTargets(300)
+            invalidateTargets(PAGE_SETTLE_MS)
         }
         // Android can stop the page's renderer to free memory (typically while the TV sleeps), or it can crash.
         // Its WebViews can't draw again after that: the page stayed blank until the app was restarted, and an
@@ -280,6 +326,10 @@ class MainActivity : Activity() {
                 root.removeView(view)
                 view.destroy()
                 popup = null
+                forgetAnswers()
+                cursor.focus = null
+                pageChanged()
+                invalidateTargets(200)
             } else if (view === web && !webGone) {
                 webGone = true
                 root.removeView(view)
@@ -303,9 +353,12 @@ class MainActivity : Activity() {
 
         // A page that failed to load (no network yet, e.g. right after the TV wakes) is tried again a few times.
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
-            if (view !== web || !request.isForMainFrame || loadRetries >= 5) return
+            if (view !== web || !request.isForMainFrame) return
+            loadFailed = true
+            if (loadRetries >= 5) return
             loadRetries++
-            handler.postDelayed({ if (!webGone && started) web.reload() }, 5000L * loadRetries)
+            handler.removeCallbacks(reloadPage)
+            handler.postDelayed(reloadPage, 5000L * loadRetries)
         }
 
         // (xp.apple.com analytics was blocked in v0.4; Apple's code then threw an "XHR error" every few
@@ -318,6 +371,9 @@ class MainActivity : Activity() {
     private var webGone = false
     private var started = false
     private var loadRetries = 0
+    private var loadFailed = false
+    /** The retry of a failed load; removed when a load works first, so it can't reload a page that's playing. */
+    private val reloadPage = Runnable { if (!webGone && started) web.reload() }
 
     /** Replaces the WebViews whose renderer is gone (main and pop-up share it) and reloads the last page. */
     private fun rebuildWeb() {
@@ -331,10 +387,9 @@ class MainActivity : Activity() {
         music.attach(web)
         music.pageLost()
         // answers from the old page will never come: clear anything waiting for one
-        fetching = false
-        rowBusy = false
-        rowQueued = 0
-        handler.removeCallbacks(rowUnstick)
+        forgetAnswers()
+        handler.removeCallbacks(reloadPage)
+        loadFailed = false
         targets = emptyList()
         primaryTargets = emptyList()
         playTargets = emptyList()
@@ -352,6 +407,7 @@ class MainActivity : Activity() {
             it.destroy()
         }
         popup = null
+        forgetAnswers()
         cursor.focus = null
         pageChanged()
         invalidateTargets(200)
@@ -400,7 +456,7 @@ class MainActivity : Activity() {
             rowBusy = false
             handler.removeCallbacks(rowUnstick)
             val arr = runCatching { JSONArray(JSONTokener(result).nextValue() as String) }.getOrNull()
-            if (arr == null || arr.length() < 4) {
+            if (arr == null || arr.length() < 5) {
                 // the first or last song (or not a list after all): leave the list the usual way, with targets
                 // re-read now (the list just scrolled under the old ones)
                 onSongRow = false
@@ -430,6 +486,7 @@ class MainActivity : Activity() {
     private var backHeld = false
     private val openQuickMenu = Runnable {
         backHeld = true
+        if (quickMenu.isOpen) { quickMenu.hide(); return@Runnable }
         if (nowPlaying.isOpen && nowPlaying.wake()) return@Runnable // in the screensaver the press only wakes it
         stopArrows()
         quickMenu.show()
@@ -462,7 +519,7 @@ class MainActivity : Activity() {
 
     /** Ends any arrow hold in progress (its release goes to a panel opened meanwhile, not here). */
     private fun stopArrows() {
-        for ((code, r) in repeaters) handler.removeCallbacks(r)
+        for (r in repeaters.values) handler.removeCallbacks(r)
         repeaters.clear()
         for (code in gliding) cursor.release(code)
         gliding.clear()
@@ -471,7 +528,6 @@ class MainActivity : Activity() {
     private fun onQuickPick(item: QuickMenuView.Item) {
         when (item) {
             QuickMenuView.Item.NOW_PLAYING -> openNowPlaying()
-            QuickMenuView.Item.VOICE -> startVoiceSearch()
             else -> item.path?.let { navigate(it) }
         }
     }
@@ -495,6 +551,10 @@ class MainActivity : Activity() {
         val before = top.url
         web.evaluateJavascript(NAV_JS.replace("%PATH%", path)) { clicked ->
             if (clicked != "true" && !webGone) {
+                if (music.state?.playing == true) {
+                    android.widget.Toast.makeText(this, R.string.search_unavailable, android.widget.Toast.LENGTH_LONG).show()
+                    return@evaluateJavascript
+                }
                 val url = if (path.startsWith("/library")) "https://music.apple.com$path" else "https://music.apple.com/${region()}$path"
                 web.loadUrl(url)
             }
@@ -503,6 +563,7 @@ class MainActivity : Activity() {
         leaveRows()
         pageChanged()
         newPage = true
+        newPageTries = 0
         newPageFrom = before
         autoEnter(++autoGen, 0)
     }
@@ -511,6 +572,12 @@ class MainActivity : Activity() {
 
     // ---- voice search: Android's speech input, then Apple's search page for what was said ----
     private fun startVoiceSearch() {
+        // Google's speech service on Android TV only listens when the app asking for it may use the microphone
+        // ("recognition service without RECORD_AUDIO"), so ask for it once; voice search starts when it's allowed.
+        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), MIC_REQUEST)
+            return
+        }
         val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt))
@@ -520,6 +587,13 @@ class MainActivity : Activity() {
         } catch (e: android.content.ActivityNotFoundException) {
             android.widget.Toast.makeText(this, R.string.voice_unavailable, android.widget.Toast.LENGTH_LONG).show()
         }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != MIC_REQUEST) return
+        if (grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) startVoiceSearch()
+        else android.widget.Toast.makeText(this, R.string.voice_needs_mic, android.widget.Toast.LENGTH_LONG).show()
     }
 
     @Deprecated("Only used for voice search")
@@ -543,9 +617,20 @@ class MainActivity : Activity() {
         if (webGone) return
         cursor.focus = null
         leaveRows()
+        searchTry(term, 0)
+    }
+
+    private fun searchTry(term: String?, tries: Int) {
+        if (webGone) return
         val js = SEARCH_JS.replace("%TERM%", org.json.JSONObject.quote(term ?: ""))
         web.evaluateJavascript(js) { found ->
-            if (found == "true" || webGone) { pageChanged(); invalidateTargets(1200); return@evaluateJavascript }
+            if (webGone) return@evaluateJavascript
+            if (found == "true") { pageChanged(); invalidateTargets(PAGE_SETTLE_MS); return@evaluateJavascript }
+            // the Search page is opening (its link was clicked): its box appears a moment later
+            if (found == "\"opening\"" || found == "\"wait\"") {
+                if (tries < 12) handler.postDelayed({ searchTry(term, tries + 1) }, 300)
+                return@evaluateJavascript
+            }
             if (music.state?.playing == true) {
                 android.widget.Toast.makeText(this, R.string.search_unavailable, android.widget.Toast.LENGTH_LONG).show()
                 return@evaluateJavascript
@@ -607,17 +692,12 @@ class MainActivity : Activity() {
         if (targets.isEmpty() || targetsAt < pageChangedAt) refresh { jumpWith(code, retry) } else jumpWith(code, retry)
     }
 
-    /**
-     * The first Down/Right after opening a page: the pointer is still where the old page's tile was, and Apple's
-     * page draws placeholders for a moment before its content. Wait (up to ~5 s) for the content, then land on
-     * its Play button or first item, instead of on the player bar or the sidebar below the pointer.
-     */
     /** Bumped by every arrow press: a press made while the page loads wins over the automatic placement. */
     private var autoGen = 0
 
     /**
      * After opening a playlist or album, put the pointer on its Play button by itself once the page has drawn
-     * it (checked every 250 ms for up to ~5 s). Pages without one (grids, Home) leave the pointer alone.
+     * it (checked every 400 ms, 15 times, ~6 s). Pages without one (grids, Home) leave the pointer alone.
      */
     private fun autoEnter(gen: Int, tries: Int) {
         if (tries > 14) return
@@ -634,11 +714,16 @@ class MainActivity : Activity() {
                 newPage = false
                 snapTo(RectF(l, t, l + a.getDouble(2).toFloat(), t + a.getDouble(3).toFloat()))
                 // one full read once the song list (drawn after the Play button) has had time to appear
-                invalidateTargets(1200)
+                invalidateTargets(PAGE_SETTLE_MS)
             }
         }, 400)
     }
 
+    /**
+     * The first Down/Right after opening a page: the pointer is still where the old page's tile was, and Apple's
+     * page draws placeholders for a moment before its content. Wait (up to ~5 s) for the content, then land on
+     * its Play button or first item, instead of on the player bar or the sidebar below the pointer.
+     */
     private fun enterNewPage(code: Int, retry: Boolean): Boolean {
         if (!newPage || (code != KeyEvent.KEYCODE_DPAD_DOWN && code != KeyEvent.KEYCODE_DPAD_RIGHT)) return false
         if (top.url == newPageFrom) {
@@ -646,7 +731,7 @@ class MainActivity : Activity() {
             if (newPageTries < 2) {
                 newPageTries++
                 lastJumpMoved = true
-                handler.postDelayed({ refresh { jumpWith(code, retry) } }, 250)
+                jumpLater(code, retry)
                 return true
             }
             newPage = false
@@ -663,7 +748,7 @@ class MainActivity : Activity() {
         }
         if (++newPageTries > 20) { newPage = false; newPageTries = 0; return true } // ~5 s: stay put
         lastJumpMoved = true // a held key keeps waiting rather than gliding
-        handler.postDelayed({ refresh { jumpWith(code, retry) } }, 250)
+        jumpLater(code, retry)
         return true
     }
 
@@ -686,7 +771,7 @@ class MainActivity : Activity() {
             val dir = if (code == KeyEvent.KEYCODE_DPAD_UP) 1f else -1f
             repeat(4) { scroll(cursor.px, cursor.py, dir) }
             handler.removeCallbacks(refreshTargets)
-            handler.postDelayed({ refresh { jumpWith(code, retry = false) } }, 250)
+            jumpLater(code, retry = false)
         }
     }
 
@@ -785,7 +870,7 @@ class MainActivity : Activity() {
         abs(a.left - b.left) < 2 && abs(a.top - b.top) < 2 && abs(a.right - b.right) < 2 && abs(a.bottom - b.bottom) < 2
 
     /** Visible, unobscured clickable elements of the top page (including inside web components), in view pixels. */
-    private fun fetchTargets(callback: (all: List<RectF>, primary: List<RectF>) -> Unit) {
+    private fun fetchTargets(callback: (all: List<RectF>, primary: List<RectF>, play: List<RectF>, bar: RectF?) -> Unit) {
         val view = top
         view.evaluateJavascript(TARGETS_JS.replace("%W%", view.width.toString())) { result ->
             val all = ArrayList<RectF>()
@@ -807,9 +892,7 @@ class MainActivity : Activity() {
                     }
                 }
             }
-            playTargets = play
-            playerBar = bar
-            callback(all, primary)
+            callback(all, primary, play, bar)
         }
     }
 
@@ -817,7 +900,7 @@ class MainActivity : Activity() {
         when {
             webGone -> moveTaskToBack(true)
             popup != null -> closePopup()
-            web.canGoBack() -> { cursor.focus = null; leaveRows(); pageChanged(); newPage = true; newPageFrom = top.url; web.goBack(); invalidateTargets(400) }
+            web.canGoBack() -> { cursor.focus = null; leaveRows(); pageChanged(); newPage = true; newPageTries = 0; newPageFrom = top.url; web.goBack(); invalidateTargets(PAGE_SETTLE_MS) }
             else -> moveTaskToBack(true) // leave the app but keep the music playing
         }
     }
@@ -837,7 +920,10 @@ class MainActivity : Activity() {
             }
             return
         }
-        tap()
+        // a tile with no link whose Play button only shows on mouse hover ("On Air Now" radio): press its Play
+        top.evaluateJavascript(withPoint(LOCKUP_PLAY_JS, cursor.px, cursor.py)) {
+            if (it == "true") { cursor.pulse(); leaveRows() } else tap()
+        }
     }
 
     /** A touch tap at the pointer. */
@@ -857,24 +943,27 @@ class MainActivity : Activity() {
         leaveRows()
         pageChanged()
         newPage = true
+        newPageTries = 0
         newPageFrom = before
         autoEnter(++autoGen, 0)
-        // the page usually changes after a click; re-read it once it has settled (not while it renders)
-        handler.postDelayed({ cursor.focus = null }, 250)
-        invalidateTargets(1500)
+        // the page usually changes after a click; re-read it once it has settled (not while it renders).
+        // The ring goes, unless an arrow pressed meanwhile already put it somewhere new.
+        val tapped = cursor.focus
+        handler.postDelayed({ if (cursor.focus === tapped) cursor.focus = null }, 250)
+        invalidateTargets(PAGE_SETTLE_MS)
     }
 
     /**
      * One hover once the pointer has rested, not a stream while it moves: Apple's page restyles itself on every
      * hover, ~250 ms each on a long playlist, so a hover every 250 ms while moving kept it busy and made presses lag.
      */
+    @Suppress("UNUSED_PARAMETER") // the pointer's own position is used, read when the hover is sent
     private fun hover(x: Float, y: Float) {
         handler.removeCallbacks(trailingHover)
         handler.postDelayed(trailingHover, HOVER_MS)
     }
 
     private fun sendHover() {
-        lastHover = SystemClock.uptimeMillis()
         sendMouse(MotionEvent.ACTION_HOVER_MOVE, cursor.px, cursor.py, 0f)
     }
 
@@ -920,9 +1009,14 @@ class MainActivity : Activity() {
         private const val HOVER_MS = 500L
         private const val REPEAT_ROW_MS = 110L
         private const val HOLD_BACK_MS = 600L
+        // After a page opens, the app's own read of where things are waits until Apple has built it: read while
+        // it was still building, it made the TV lay the page out an extra time (0.3-1 s each on Home, Radio,
+        // artist pages). An arrow pressed sooner still reads the page right then.
+        private const val PAGE_SETTLE_MS = 2500L
 
         // Apple's search box (looked for through shadow roots too). With a term: typed in and submitted with
-        // Enter, like a keyboard would. Without: clicked, which opens the app's TV text box. Returns found or not.
+        // Enter, like a keyboard would. Without: clicked, which opens the app's TV text box. The box is only on
+        // Apple's Search page: elsewhere its sidebar link is clicked ("opening"; no reload) and this runs again.
         private const val SEARCH_JS = """
             (function (term) {
               function find(root) {
@@ -933,7 +1027,17 @@ class MainActivity : Activity() {
                 return null;
               }
               var box = find(document);
-              if (!box) return false;
+              if (!box) {
+                if (window.__tvSearchOpening && Date.now() - window.__tvSearchOpening < 4000) return 'wait';
+                var links = document.querySelectorAll('a[href]');
+                for (var i = 0; i < links.length; i++) {
+                  var p = '';
+                  try { p = new URL(links[i].href).pathname.replace(/\/$/, ''); } catch (e) { continue; }
+                  if (/^(\/[a-z]{2})?\/search$/.test(p)) { window.__tvSearchOpening = Date.now(); links[i].click(); return 'opening'; }
+                }
+                return false;
+              }
+              window.__tvSearchOpening = 0;
               if (!term) { box.focus(); box.click(); return true; }
               box.focus();
               Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(box, term);
@@ -947,6 +1051,7 @@ class MainActivity : Activity() {
             })(%TERM%)
         """
         private const val VOICE_REQUEST = 41
+        private const val MIC_REQUEST = 42
 
         // A main section's link on Apple's page whose address ends with the given path; clicked if found.
         private const val NAV_JS = """
@@ -966,16 +1071,32 @@ class MainActivity : Activity() {
             })('%PATH%')
         """
 
+        // Is this button the page's Play (1) or Shuffle (2)? Apple's class names aren't translated, so they're
+        // checked first; the labels cover the languages of this app for pages without such a class.
+        // A song row's own play button doesn't count.
+        private const val ACTION_KIND_JS = """
+            function actionKind(b) {
+              if (b.tagName !== 'BUTTON' || (b.closest && b.closest('.songs-list-row'))) return 0;
+              var c = (typeof b.className === 'string' ? b.className : '') + ' ' + (b.getAttribute('data-testid') || '');
+              if (/shuffle/i.test(c)) return 2;
+              if (/(^|[^a-z])play([^a-z]|$)|play-?button/i.test(c) && !/pause|playing|preview/i.test(c)) return 1;
+              var l = (b.getAttribute('aria-label') || b.textContent || '').trim().toLowerCase();
+              if (/^(play|reproducir|lecture|lire|wiedergabe|abspielen|reproduzir|tocar|riproduci|再生|воспроизвести|слушать)$/.test(l)) return 1;
+              if (/^(shuffle|aleatorio|aleatório|aléatoire|lecture aléatoire|zufällig|zufallswiedergabe|casuale|riproduzione casuale|シャッフル|перемешать|в случайном порядке)$/.test(l)) return 2;
+              return 0;
+            }
+        """
+
         // The page's own Play button (not the player bar's), in view px, or null. A few querySelector calls only.
         private const val PLAY_BUTTON_JS = """
             (function (viewWidth) {
+              $ACTION_KIND_JS
               var s = viewWidth / innerWidth, bar = document.querySelector('.chrome-player');
               var list = document.querySelectorAll('button');
               for (var i = 0; i < list.length; i++) {
                 var b = list[i];
                 if (bar && bar.contains(b)) continue;
-                var label = (b.getAttribute('aria-label') || b.textContent || '').trim().toLowerCase();
-                if (label !== 'play') continue;
+                if (actionKind(b) !== 1) continue;
                 var r = b.getBoundingClientRect();
                 if (r.width < 8 || r.height < 8 || r.top < 0 || r.bottom > innerHeight * 0.86) continue;
                 return JSON.stringify([r.left * s, r.top * s, r.width * s, r.height * s]);
@@ -1030,6 +1151,29 @@ class MainActivity : Activity() {
             })(%X%, %Y%, %DIR%)
         """
 
+        // OK on a tile that has no link of its own, only a Play button that appears on mouse hover (the live
+        // stations under "On Air Now"): Apple ignores a tap on that still-invisible button, so it's clicked here.
+        private const val LOCKUP_PLAY_JS = """
+            (function (x, y) {
+              var s = %W% / innerWidth, el = document.elementFromPoint(x / s, y / s);
+              while (el && el.shadowRoot && el.shadowRoot.elementFromPoint) {
+                var inner = el.shadowRoot.elementFromPoint(x / s, y / s);
+                if (!inner || inner === el) break;
+                el = inner;
+              }
+              if (!el || !el.closest) return false;
+              var tile = el.closest('[class*="lockup"]');
+              if (!tile || tile.querySelector('a[href]')) return false;
+              var btn = tile.querySelector('button[data-testid="play-button"], button.play-button');
+              if (!btn) return false;
+              // anything else under the pointer (the "more" button) is tapped as usual
+              var hit = el.closest('a[href], button');
+              if (hit && hit !== btn) return false;
+              btn.click();
+              return true;
+            })(%X%, %Y%)
+        """
+
         // OK on a song row (not on a link or button inside it): press the row's own Play button, which plays the
         // song right away (a tap on the row only selects it). Returns true if it did.
         private const val PLAY_ROW_JS = """
@@ -1038,9 +1182,14 @@ class MainActivity : Activity() {
               var row = rowAt(x, y);
               if (!row) return false;
               var s = %W% / innerWidth, el = document.elementFromPoint(x / s, y / s);
+              while (el && el.shadowRoot && el.shadowRoot.elementFromPoint) {
+                var inner = el.shadowRoot.elementFromPoint(x / s, y / s);
+                if (!inner || inner === el) break;
+                el = inner;
+              }
+              var btn = row.querySelector('button[class*="play-button"], button[aria-label^="Play"]');
               var link = el && el.closest ? el.closest('a[href], button') : null;
-              if (!%WHOLE% && link && row.contains(link) && !/^play\b/i.test(link.getAttribute('aria-label') || '')) return false;
-              var btn = row.querySelector('button[aria-label^="Play"], button[class*="play-button"]');
+              if (!%WHOLE% && link && row.contains(link) && link !== btn) return false;
               if (!btn) return false;
               btn.click();
               return true;
@@ -1067,9 +1216,13 @@ class MainActivity : Activity() {
                   // made one playlist open spend ~14 s recalculating styles
                   '* { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }' +
                   '[class*="lyric"] { filter: none !important; }' +
-                  // "only render what's in view": off-screen shelves/sections skip layout and paint until
-                  // scrolled near (their size is remembered, so the page doesn't jump)
+                  // "only render what's in view": off-screen shelves/sections skip layout and paint until scrolled
+                  // near (their size is remembered, so the page doesn't jump). Measured on the TV: Home opens with
+                  // 2-2.5 s of busy page instead of ~5.7 s, New ~3 s instead of ~5.3 s.
                   'main section, [class*="shelf" i] { content-visibility: auto; contain-intrinsic-size: auto 480px; }' +
+                  // ...but once shown, a section or row stays rendered: otherwise it was skipped again on scrolling
+                  // away and rebuilt on coming back (100-250 ms frames on every scroll back and forth)
+                  '[data-tv-shown] { content-visibility: visible !important; }' +
                   // songs in long playlists/albums: rows off screen skip style and layout (a playlist page restyled
                   // ~5,600 elements per change); 54 px is a row's height, so the list keeps its length and scroll
                   '.songs-list-row { content-visibility: auto; contain-intrinsic-size: auto 54px; }' +
@@ -1078,12 +1231,21 @@ class MainActivity : Activity() {
                   'canvas { display: none !important; }' +
                   // the "now playing" equalizer bars loop forever and restyle every frame
                   '[class*="playback-bars"] { animation: none !important; }' +
+                  // CSS animations everywhere: an artist page's header alone ran five scroll-linked ones that blur
+                  // its picture as the page moves, so every scroll step restyled and re-blurred it (150-220 ms
+                  // frames). Things just appear in place instead. (Transitions stay: some menus wait for them.)
+                  '* { animation: none !important; }' +
+                  '[class*="artist-expression-header"] { filter: none !important; }' +
                   // the floating player bar only while music plays (it covered the bottom of every page, and Down
                   // got caught on it): hidden a few seconds after playback stops, back as soon as it starts
                   'html.tv-no-music .chrome-player { visibility: hidden !important; }';
                 (document.head || document.documentElement).appendChild(s);
               }
               if (document.documentElement) add(); else document.addEventListener('DOMContentLoaded', add);
+              // the browser says when a "render when in view" element is first rendered: mark it as shown
+              document.addEventListener('contentvisibilityautostatechange', function (e) {
+                if (!e.skipped && e.target && e.target.setAttribute) e.target.setAttribute('data-tv-shown', '');
+              }, true);
 
               // Data: Apple's player kept ~5 minutes of audio downloaded ahead (the rest of the song and most of the
               // next), thrown away on every skip. Its audio pieces (aod-ssl ranges, ~400 KB each) are fetched by the
@@ -1148,10 +1310,50 @@ class MainActivity : Activity() {
                 music(m);
               }, 1000);
 
+              // Apple's page watches its own performance for Apple's analytics (paint, resource, long-task and
+              // frame observers): their callbacks ran inside many slow frames, 10-56 ms each. They now receive
+              // nothing; the analytics requests themselves still go (blocking them made the page retry).
+              if (window.PerformanceObserver && !window.__tvRealPerformanceObserver) {
+                window.__tvRealPerformanceObserver = window.PerformanceObserver;
+                window.__tvObserve = window.PerformanceObserver.prototype.observe; // for measuring (docs/DEVELOPMENT.md)
+                window.PerformanceObserver.prototype.observe = function () {};
+              }
+
+              // Apple's moving artwork (Home's banners, artist headers, playlist covers) is one component,
+              // <amp-ambient-video>, whose own video player downloads the video before any <video> setting can
+              // stop it: 47 MB in 8 s on Home, ~2.8 MB per artist page. It's replaced by a stand-in with the same
+              // properties that never loads video; the still artwork next to it shows instead.
+              if (window.customElements && !window.__tvStillVideo) {
+                window.__tvStillVideo = true;
+                var realDefine = customElements.define;
+                var Still = function () { return Reflect.construct(HTMLElement, [], new.target); };
+                Still.prototype = Object.create(HTMLElement.prototype);
+                Still.prototype.constructor = Still;
+                Object.setPrototypeOf(Still, HTMLElement);
+                Still.observedAttributes = [];
+                ['src', 'poster', 'width', 'height'].forEach(function (k) {
+                  Object.defineProperty(Still.prototype, k, {
+                    get: function () { return this.getAttribute(k); },
+                    set: function (v) { if (v == null) this.removeAttribute(k); else this.setAttribute(k, v); }
+                  });
+                });
+                Object.defineProperty(Still.prototype, 'playing', { get: function () { return false; }, set: function () {} });
+                Still.prototype.play = function () { return Promise.resolve(); };
+                Still.prototype.pause = function () {};
+                Still.prototype.componentOnReady = function () { return Promise.resolve(this); };
+                Still.prototype.connectedCallback = function () { this.setAttribute('hydrated', ''); };
+                customElements.define = function (name, ctor, options) {
+                  if (name === 'amp-ambient-video') ctor = Still;
+                  return realDefine.call(customElements, name, ctor, options);
+                };
+              }
+
               // Animated album covers are muted, looping videos; each one is a video decode running in the
               // background. Stop them (the still cover underneath shows instead). Music videos aren't muted/looped.
+              // Artist pages' moving headers (amp-ambient-video) are muted but don't loop: a 1080p video, ~2.8 MB
+              // in the first seconds of opening the page. Stopped the same way; the header's still picture stays.
               function calm(v) {
-                if (!v || v.tagName !== 'VIDEO' || v.__calmed || !(v.loop && v.muted)) return;
+                if (!v || v.tagName !== 'VIDEO' || v.__calmed || !isAmbient(v)) return;
                 v.__calmed = true;
                 v.autoplay = false;
                 v.preload = 'none';
@@ -1163,7 +1365,13 @@ class MainActivity : Activity() {
                 v.style.display = 'none';
               }
               // Refuse to start them at all, so they never download video (~150 requests per page load otherwise).
-              function isAmbient(m) { return m.tagName === 'VIDEO' && m.loop && m.muted; }
+              function isAmbient(m) {
+                if (m.tagName !== 'VIDEO' || !m.muted) return false;
+                if (m.loop) return true;
+                var host = m.parentNode && m.parentNode.host ? m.parentNode.host : m.parentElement;
+                if (!host && m.getRootNode) host = m.getRootNode().host;
+                return !!(host && (host.tagName === 'AMP-AMBIENT-VIDEO' || (host.closest && host.closest('amp-ambient-video, .video-artwork__container'))));
+              }
               var srcProp = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
               Object.defineProperty(HTMLMediaElement.prototype, 'src', {
                 configurable: true, enumerable: true, get: srcProp.get,
@@ -1306,11 +1514,8 @@ class MainActivity : Activity() {
                 out.push([l * s, t * s, (r - l) * s, (b - t) * s, isPrimary(el)]);
               }
               // the page's main actions (Play / Shuffle), so "right from the sidebar" can land on them
-              function isPrimary(el) {
-                if (el.tagName !== 'BUTTON') return 0;
-                var label = (el.getAttribute('aria-label') || el.textContent || '').trim().toLowerCase();
-                return label === 'play' ? 1 : label === 'shuffle' ? 2 : 0;
-              }
+              $ACTION_KIND_JS
+              function isPrimary(el) { return actionKind(el); }
               var found = [], newcomers = [];
               function walk(rootNode) {
                 rootNode.querySelectorAll(SEL).forEach(function (el) {

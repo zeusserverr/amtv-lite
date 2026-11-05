@@ -38,11 +38,9 @@ class NowPlayingView(
     private var lastInput = SystemClock.uptimeMillis()
     private var controlsUntil = 0L
     private var ambient = false
-    private var shownAt = 0L
 
     fun show() {
         visibility = VISIBLE
-        shownAt = SystemClock.uptimeMillis()
         touch()
         schedule(0L)
     }
