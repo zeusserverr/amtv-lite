@@ -59,6 +59,7 @@ About 30% of a core while playing is Chrome's protected-audio pipeline (the Medi
 ## Building and releasing
 - Debug: `gradle assembleDebug`. Release: `gradle assembleRelease`, signed with the key named in `~/.gradle/gradle.properties` (`AMTV_STORE_FILE`, `AMTV_STORE_PASSWORD`, `AMTV_KEY_ALIAS`, `AMTV_KEY_PASSWORD`). Without those, release builds are unsigned.
 - Publish: bump `versionCode`/`versionName`, rename the APK to exactly **`AndroidAppleMusicTV.apk`** (the README links `releases/latest/download/AndroidAppleMusicTV.apk`), then `gh release create vX.Y.Z AndroidAppleMusicTV.apk --latest`, and add an entry to `CHANGELOG.md`.
+- The Downloader code **4517764** (aftv.news/4517764, registered at go.aftvnews.com) points to `releases/latest/download/AndroidAppleMusicTV.apk`, so it follows new releases as long as the asset keeps that name.
 - Updates must be signed with the same key, or Android refuses to install them over the previous version.
 
 ## Ground rules

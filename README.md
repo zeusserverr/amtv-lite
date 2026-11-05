@@ -13,6 +13,8 @@
   <a href="https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk">⬇️ Download the APK</a>
 </h3>
 
+<p align="center">On your TV, in the <b>Downloader</b> app, just enter code <b><code>4517764</code></b></p>
+
 <p align="center">
   <a href="#download-and-install">Install guide</a> ·
   <a href="docs/demo-switch-playlists.mp4">Demo video</a> ·
@@ -73,15 +75,16 @@ Measured on an NVIDIA SHIELD (2019):
 
 ### ⬇️ [Download the app (APK)](https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk)
 
-That link always gets the newest version. All versions and their change notes are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases).
+That link, the Downloader code **4517764** and the short link [aftv.news/4517764](http://aftv.news/4517764) always get the newest version. All versions and their change notes are on the [Releases page](https://github.com/zeusserverr/android-apple-music-tv/releases).
 
 ### Easiest: install straight on the TV with Downloader
 1. On your Android TV, install **Downloader by AFTVnews** from the Play Store.
 2. Allow it to install apps: **Settings → Device Preferences → Security & restrictions → Unknown sources → Downloader → On**. Menus differ a little between TVs; on some it's under **Apps → Special app access → Install unknown apps**.
-3. Open Downloader and type this address into its URL box:
+3. Open Downloader, and in its address box enter the code:
    ```
-   https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk
+   4517764
    ```
+   (or the full address: `https://github.com/zeusserverr/android-apple-music-tv/releases/latest/download/AndroidAppleMusicTV.apk`)
 4. Choose **Go**. When it finishes downloading, choose **Install**.
 5. Open **Android Apple Music TV** from your apps, choose **Sign In** on Apple's page, and sign in with your Apple ID using the on-screen text box. You only do this once.
 
