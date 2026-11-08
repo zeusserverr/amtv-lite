@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.2 — 2026-11-07
+- **Fixed:** on Fire TV devices with Fire OS 6 (Android 7.1), such as the Fire TV Stick 4K (2018), Fire TV Stick (2nd gen) and Fire TV Cube (1st gen), Downloader said "There was a problem parsing the package". The app now installs on Android 7.1 and newer, which covers Fire OS 6, 7 and 8.
+
 ## 0.10.1 — 2026-11-05
 - **Search** works while music plays: it opens Apple's own search, so nothing reloads. Type, or press Down to the mic button and speak. The quick menu has one Search entry for both.
 - **Fixed:** voice search heard nothing. It needs microphone access, which the app now asks for the first time (the speech is handled by Google's voice service; the app records nothing).

@@ -106,7 +106,7 @@ To update, do the same again; the new version installs over the old one. Prefer 
 
 **Lossless or Dolby Atmos?** No. Apple's web player streams 256 kbps AAC, and that's what this app plays.
 
-**Will it work on my TV?** Most Android TV and Google TV devices, as long as their WebView supports Widevine (Apple's copy protection). It's tested on an NVIDIA SHIELD; Amazon Fire TV is untested.
+**Will it work on my TV?** Most Android TV and Google TV devices, as long as their WebView supports Widevine (Apple's copy protection). It needs Android 7.1 or newer, which includes Fire TV devices on Fire OS 6, 7 and 8 (the first Fire TV Stick and Fire OS 5 devices are too old). It's tested on an NVIDIA SHIELD; playback on Fire TV is not yet confirmed.
 
 **Found a problem?** [Open an issue](https://github.com/zeusserverr/amtv-lite/issues/new/choose) with your TV model and what happened.
 

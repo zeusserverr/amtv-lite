@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.graphics.RectF
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -240,7 +241,7 @@ class MainActivity : Activity() {
             userAgentString = desktopUserAgent()
         }
         // The SHIELD runs close to its 3 GB; keep the page's renderer from being the first thing squeezed.
-        setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
+        if (Build.VERSION.SDK_INT >= 26) setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
         // Lay the page out about CSS_WIDTH CSS pixels wide, so the desktop player fits and reads well on a TV.
         setInitialScale((resources.displayMetrics.widthPixels * 100f / CSS_WIDTH).roundToInt())
         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)

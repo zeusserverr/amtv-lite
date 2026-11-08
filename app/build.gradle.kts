@@ -9,10 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "com.ralph.applemusictv"
-        minSdk = 26
+        minSdk = 25
         targetSdk = 34
-        versionCode = 18
-        versionName = "0.10.1"
+        versionCode = 19
+        versionName = "0.10.2"
     }
 
     // Release signing comes from ~/.gradle/gradle.properties (AMTV_STORE_FILE, AMTV_STORE_PASSWORD, AMTV_KEY_ALIAS,

@@ -24,10 +24,16 @@ class PlaybackService : Service() {
         val title = intent?.getStringExtra(EXTRA_TITLE).orEmpty()
         val artist = intent?.getStringExtra(EXTRA_ARTIST).orEmpty()
         val nm = getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, getString(R.string.notification_channel), NotificationManager.IMPORTANCE_LOW))
+        // Android 8+ needs a channel; Fire OS 6 (Android 7.1) has none and uses the builder's priority instead
+        if (Build.VERSION.SDK_INT >= 26) {
+            nm.createNotificationChannel(NotificationChannel(CHANNEL, getString(R.string.notification_channel), NotificationManager.IMPORTANCE_LOW))
+        }
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val notification = Notification.Builder(this, CHANNEL)
+        @Suppress("DEPRECATION")
+        val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CHANNEL)
+            else Notification.Builder(this).setPriority(Notification.PRIORITY_LOW)
+        val notification = builder
             .setSmallIcon(R.drawable.ic_app)
             .setContentTitle(title.ifEmpty { "Apple Music" })
             .setContentText(artist)
@@ -60,7 +66,7 @@ class PlaybackService : Service() {
 
         fun playing(context: Context, title: String, artist: String, token: MediaSession.Token) {
             runCatching {
-                context.startForegroundService(Intent(context, PlaybackService::class.java)
+                start(context, Intent(context, PlaybackService::class.java)
                     .putExtra(EXTRA_TITLE, title).putExtra(EXTRA_ARTIST, artist).putExtra(EXTRA_TOKEN, token))
             }
         }
@@ -68,8 +74,13 @@ class PlaybackService : Service() {
         /** Stops through the service itself, so it always calls startForeground before going away. */
         fun stopped(context: Context) {
             runCatching {
-                context.startForegroundService(Intent(context, PlaybackService::class.java).putExtra(EXTRA_STOP, true))
+                start(context, Intent(context, PlaybackService::class.java).putExtra(EXTRA_STOP, true))
             }
+        }
+
+        /** startForegroundService() exists from Android 8; before that a plain start may call startForeground. */
+        private fun start(context: Context, intent: Intent) {
+            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
         }
     }
 }
